@@ -13,7 +13,7 @@ export default function LoginPage() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     // 处理登录逻辑
-    router.push("/dashboard");
+    router.push("/showdata/dashboard");
   };
 
   return (
