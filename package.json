@@ -2,7 +2,11 @@
   "name": "dsa_ui",
   "version": "0.1.0",
   "private": true,
+  "config": {
+    "registry": "https://registry.npmmirror.com"
+  },
   "scripts": {
+    "preinstall": "npm config set registry https://registry.npmmirror.com",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
