@@ -62,7 +62,7 @@ export function DatabaseConfig() {
       localStorage.setItem('influxdb_config', JSON.stringify(finalConfig));
       setSaveStatus({ 
         type: 'success', 
-        message: `配置已保存，连接验证成功 (HTTP ${response.status})` 
+        message: `配置已保存，连接验证成功` 
       });
 
     } catch (error) {
@@ -135,7 +135,7 @@ export function DatabaseConfig() {
         </div>
         
         {saveStatus.type && (
-          <Alert className={saveStatus.type === 'success' ? 'bg-green-50' : 'bg-red-50'}>
+          <Alert variant={saveStatus.type === 'success' ? 'default' : 'destructive'}>
             <AlertDescription>
               {saveStatus.message}
             </AlertDescription>
