@@ -29,8 +29,9 @@ interface DataTableProps {
   handlePageJump: () => void
   handlePrevPage: () => void
   handleNextPage: () => void
-  getCurrentPageData: () => VitalData[]
   showAlert: (title: string, description: string) => void
+  currentPageData: VitalData[] // 新增此行
+  handleShowChart: () => void // 添加这一行
 }
 
 export function DataTable({
@@ -55,8 +56,9 @@ export function DataTable({
   handlePageJump,
   handlePrevPage,
   handleNextPage,
-  getCurrentPageData,
   showAlert,
+  currentPageData,
+  handleShowChart, // 添加这一行
 }: DataTableProps) {
   return (
     <Card>
@@ -72,6 +74,21 @@ export function DataTable({
                 <DialogTitle>添加新数据</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                <div>
+                  <label>床位</label>
+                  <Select onValueChange={(v) => setNewData({...newData, bed: v})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择床位" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1号床">1号床</SelectItem>
+                      <SelectItem value="2号床">2号床</SelectItem>
+                      <SelectItem value="3号床">3号床</SelectItem>
+                      <SelectItem value="4号床">4号床</SelectItem>
+                      <SelectItem value="5号床">5号床</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <label>数据类型</label>
                   <Select onValueChange={(v) => setNewData({...newData, type: v})}>
@@ -141,19 +158,37 @@ export function DataTable({
             </DialogContent>
           </Dialog>
 
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              if (selectedItems.length === 0) {
-                showAlert("未选择数据", "请至少选择一条数据导出");
-                return;
-              }
-              handleExport();
-            }}
-            className={selectedItems.length === 0 ? "opacity-50" : ""}
-          >
-            导出数据
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="font-medium"
+              disabled={selectedItems.length === 0}
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              批量删除
+            </Button>
+            <Button
+              variant="secondary"
+              className="font-medium"
+              disabled={selectedItems.length === 0}
+              onClick={handleExport}
+            >
+              导出数据
+            </Button>
+            <Button 
+              variant="secondary"
+              className="bg-primary/10 hover:bg-primary/20 font-medium"
+              onClick={() => {
+                if (selectedItems.length === 0) {
+                  showAlert("未选择数据", "请至少选择一条数据进行图表展示");
+                  return;
+                }
+                handleShowChart();
+              }}
+            >
+              图表展示
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -171,6 +206,7 @@ export function DataTable({
                     aria-label="Select all"
                   />
                 </TableHead>
+                <TableHead>床位</TableHead>  {/* 新增 */}
                 <TableHead>时间</TableHead>
                 <TableHead>数据类型</TableHead>
                 <TableHead>数值</TableHead>
@@ -179,7 +215,7 @@ export function DataTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {getCurrentPageData().map((row) => (
+              {currentPageData.map((row) => ( // 使用 currentPageData 替代 getCurrentPageData()
                 <TableRow key={row.id}>
                   <TableCell>
                     <input 
@@ -190,6 +226,7 @@ export function DataTable({
                       aria-label="Select row" 
                     />
                   </TableCell>
+                  <TableCell>{row.bed}</TableCell>  {/* 新增 */}
                   <TableCell>{row.timestamp}</TableCell>
                   <TableCell>{row.type}</TableCell>
                   <TableCell>{row.value}</TableCell>

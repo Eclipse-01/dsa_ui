@@ -1,91 +1,147 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar-app"
 import { cn } from "@/lib/utils"
-import { VitalData, vitalDataList } from "@/app/data/vitalData"
+import { VitalData, loadVitalData } from "@/app/data/vitalData"
 import { FilterSection } from "./components/FilterSection"
 import { DataTable } from "./components/DataTable"
 import { format } from "date-fns"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ChartPaint } from "./components/ChartPaint"
 
 export default function ShowDBPage() {
-  // 状态管理
+  // 修改状态初始化
+  const [data, setData] = useState<VitalData[]>([])
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
   const [dataType, setDataType] = useState("all")
-  const [data, setData] = useState<VitalData[]>(vitalDataList)
+  const [bedFilter, setBedFilter] = useState("all")
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [newData, setNewData] = useState<Partial<VitalData>>({
     timestamp: format(new Date(), "yyyy-MM-dd HH:mm"),
     type: "",
     value: "",
-    unit: ""
+    unit: "",
+    bed: ""  // 添加床位字段
   })
 
   // 添加分页相关状态
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10 // 每页显示的数据条数
   
-  // 计算当前页的数据
+  // 修改 getCurrentPageData 方法，添加日志
   const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return data.slice(startIndex, endIndex)
+    if (!data || !Array.isArray(data)) {
+      console.error('数据无效');
+      return [];
+    }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageData = data.slice(startIndex, endIndex);
+    console.log('当前页数据:', pageData);
+    return pageData;
   }
 
-  // 处理下一页
+  // 删除错误的 getPageData 函数，添加正确的 handleNextPage 函数
+  // 修改分页处理函数
   const handleNextPage = () => {
     if (currentPage * itemsPerPage < data.length) {
       setCurrentPage(prev => prev + 1)
     }
   }
 
-  // 处理上一页
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1)
     }
   }
   
-  // 查询数据
+  // 添加数据加载效果
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 修改数据加载逻辑
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        const loadedData = await loadVitalData()
+        if (Array.isArray(loadedData)) {
+          setData(loadedData)
+        } else {
+          console.error('数据格式错误:', loadedData)
+          setData([])
+          showAlert("错误", "数据格式错误")
+        }
+      } catch (error) {
+        console.error('加载数据失败:', error)
+        setData([])
+        showAlert("错误", "加载数据失败")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  // 修改查询数据逻辑
   const handleSearch = () => {
-    let filteredData = [...vitalDataList]
-    
-    if (dataType && dataType !== "all") {
-      filteredData = filteredData.filter(item => item.type === dataType)
+    try {
+      const loadData = async () => {
+        const loadedData = await loadVitalData()
+        let filteredData = [...loadedData]
+        
+        if (dataType && dataType !== "all") {
+          filteredData = filteredData.filter(item => item.type === dataType)
+        }
+        
+        if (bedFilter && bedFilter !== "all") {
+          filteredData = filteredData.filter(item => item.bed === bedFilter)
+        }
+        
+        if (startDate && endDate) {
+          filteredData = filteredData.filter(item => {
+            const itemDate = new Date(item.timestamp)
+            return itemDate >= startDate && itemDate <= endDate
+          })
+        }
+        
+        setData(filteredData)
+        setCurrentPage(1) // 重置页码
+      }
+
+      loadData()
+    } catch (error) {
+      console.error('筛选数据失败:', error)
+      showAlert("错误", "筛选数据失败")
     }
-    
-    if (startDate && endDate) {
-      filteredData = filteredData.filter(item => {
-        const itemDate = new Date(item.timestamp)
-        return itemDate >= startDate && itemDate <= endDate
-      })
-    }
-    
-    setData(filteredData)
   }
 
-  // 添加清除筛选器函数
-  const handleClearFilters = () => {
+  // 修改清除筛选器函数
+  const handleClearFilters = async () => {
     setStartDate(undefined)
     setEndDate(undefined)
     setDataType("all")
-    setData(vitalDataList)
+    setBedFilter("all")
+    const loadedData = await loadVitalData()
+    setData(loadedData)
+    setCurrentPage(1)
   }
 
   // 新增数据
   const handleAdd = () => {
-    if (!newData.type || !newData.value) return
+    if (!newData.type || !newData.value || !newData.bed) return  // 添加床位检查
 
     const newItem: VitalData = {
       id: data.length + 1,
       timestamp: newData.timestamp || format(new Date(), "yyyy-MM-dd HH:mm"),
       type: newData.type,
       value: newData.value,
-      unit: newData.unit || ""
+      unit: newData.unit || "",
+      bed: newData.bed  // 添加床位
     }
 
     setData([...data, newItem])
@@ -93,7 +149,8 @@ export default function ShowDBPage() {
       timestamp: format(new Date(), "yyyy-MM-dd HH:mm"),
       type: "",
       value: "",
-      unit: ""
+      unit: "",
+      bed: ""  // 重置床位
     })
   }
 
@@ -122,7 +179,7 @@ export default function ShowDBPage() {
 
     const selectedData = data.filter(item => selectedItems.includes(item.id));
 
-    const headers = ["时间", "数据类型", "数值", "单位"];
+    const headers = ["时间", "数据类型", "��值", "单位"];
     const csvContent = [
       headers.join(","),
       ...selectedData.map(item => 
@@ -170,7 +227,7 @@ export default function ShowDBPage() {
       setCurrentPage(pageNumber)
       setPageInput("") // 清空输入
     } else {
-      showAlert("页码无效", `请输入1-${totalPages}之间的页码`);
+      showAlert("页码无效", `请输入1-${totalPages}之间的���码`);
     }
   }
 
@@ -192,7 +249,13 @@ export default function ShowDBPage() {
 
   // 在useState声明部分添加新的状态
   const [isExtremeDialogOpen, setIsExtremeDialogOpen] = useState(false)
-  const [extremeValues, setExtremeValues] = useState<{ max: string; min: string }>({ max: '', min: '' })
+  const [extremeValues, setExtremeValues] = useState<{
+    max: { value: string; record: VitalData | null };
+    min: { value: string; record: VitalData | null };
+  }>({
+    max: { value: '', record: null },
+    min: { value: '', record: null }
+  })
 
   // 修改计算极值的函数
   const calculateExtremes = () => {
@@ -216,15 +279,38 @@ export default function ShowDBPage() {
   
   // 修改处理极值查询的函数
   const handleShowExtremes = () => {
-    if (selectedItems.length === 0) {
-      showAlert("未选择数据", "请至少选择一条数据进行极值统计");
+    const selectedData = data.filter(item => selectedItems.includes(item.id));
+    if (selectedData.length === 0) {
+      setExtremeValues({
+        max: { value: '无数据', record: null },
+        min: { value: '无数据', record: null }
+      });
       return;
     }
-    const extremes = calculateExtremes()
-    if (extremes) {
-      setExtremeValues(extremes)
-      setIsExtremeDialogOpen(true)
+  
+    // 过滤出有效的数值数据
+    const validData = selectedData.filter(item => !isNaN(parseFloat(item.value)));
+    if (validData.length === 0) {
+      setExtremeValues({
+        max: { value: '无有效数值', record: null },
+        min: { value: '无有效数值', record: null }
+      });
+      return;
     }
+  
+    const maxRecord = validData.reduce((max, item) => 
+      parseFloat(item.value) > parseFloat(max.value) ? item : max
+    , validData[0]);
+  
+    const minRecord = validData.reduce((min, item) => 
+      parseFloat(item.value) < parseFloat(min.value) ? item : min
+    , validData[0]);
+  
+    setExtremeValues({
+      max: { value: maxRecord.value, record: maxRecord },
+      min: { value: minRecord.value, record: minRecord }
+    });
+    setIsExtremeDialogOpen(true);
   }
 
   // 添加一个全局提示状态
@@ -251,6 +337,16 @@ export default function ShowDBPage() {
       setAlertInfo(prev => ({ ...prev, show: false }));
     }, 5000);
   };
+
+  // 添加状态
+  const [isChartOpen, setIsChartOpen] = useState(false)
+
+  // 添加图表处理函数
+  const handleShowChart = () => {
+    if (selectedItems.length > 0) {
+      setIsChartOpen(true)
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -287,56 +383,79 @@ export default function ShowDBPage() {
         </div>
         <div className="p-6">
           <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">历史数据</h1>
-              <ModeToggle />
-            </div>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <p>加载中...</p>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="flex justify-center items-center h-32">
+                <p>暂无数据</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-3xl font-bold">历史数据</h1>
+                  <ModeToggle />
+                </div>
+                <FilterSection
+                  dataType={dataType}
+                  setDataType={setDataType}
+                  startDate={startDate}
+                  setStartDate={setStartDate}
+                  endDate={endDate}
+                  setEndDate={setEndDate}
+                  handleSearch={handleSearch}
+                  handleClearFilters={handleClearFilters}
+                  handleShowExtremes={handleShowExtremes}
+                  isExtremeDialogOpen={isExtremeDialogOpen}
+                  setIsExtremeDialogOpen={setIsExtremeDialogOpen}
+                  selectedItems={selectedItems}
+                  extremeValues={extremeValues}
+                  showAlert={showAlert}
+                  bedFilter={bedFilter}
+                  setBedFilter={setBedFilter}
+                  handleShowChart={handleShowChart}
+                  isChartOpen={isChartOpen}
+                  setIsChartOpen={setIsChartOpen}
+                />
 
-            <FilterSection
-              dataType={dataType}
-              setDataType={setDataType}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              handleSearch={handleSearch}
-              handleClearFilters={handleClearFilters}
-              handleShowExtremes={handleShowExtremes}
-              isExtremeDialogOpen={isExtremeDialogOpen}
-              setIsExtremeDialogOpen={setIsExtremeDialogOpen}
-              selectedItems={selectedItems}
-              extremeValues={extremeValues}
-              showAlert={showAlert}
-            />
-
-            <DataTable
-              data={data}
-              selectedItems={selectedItems}
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              totalPages={totalPages}
-              pageInput={pageInput}
-              newData={newData}
-              isDeleteDialogOpen={isDeleteDialogOpen}
-              handleSelect={handleSelect}
-              handleSelectAll={handleSelectAll}
-              handleDelete={handleDelete}
-              handleAdd={handleAdd}
-              setNewData={setNewData}
-              setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-              handleDeleteSelected={handleDeleteSelected}
-              handleExport={handleExport}
-              handlePageInputChange={handlePageInputChange}
-              handlePageInputKeyDown={handlePageInputKeyDown}
-              handlePageJump={handlePageJump}
-              handlePrevPage={handlePrevPage}
-              handleNextPage={handleNextPage}
-              getCurrentPageData={getCurrentPageData}
-              showAlert={showAlert}
-            />
+                <DataTable
+                  data={data}
+                  currentPageData={getCurrentPageData()} // 新增此行
+                  selectedItems={selectedItems}
+                  currentPage={currentPage}
+                  itemsPerPage={itemsPerPage}
+                  totalPages={totalPages}
+                  pageInput={pageInput}
+                  newData={newData}
+                  isDeleteDialogOpen={isDeleteDialogOpen}
+                  handleSelect={handleSelect}
+                  handleSelectAll={handleSelectAll}
+                  handleDelete={handleDelete}
+                  handleAdd={handleAdd}
+                  setNewData={setNewData}
+                  setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                  handleDeleteSelected={handleDeleteSelected}
+                  handleExport={handleExport}
+                  handlePageInputChange={handlePageInputChange}
+                  handlePageInputKeyDown={handlePageInputKeyDown}
+                  handlePageJump={handlePageJump}
+                  handlePrevPage={handlePrevPage}
+                  handleNextPage={handleNextPage}
+                  showAlert={showAlert}
+                  handleShowChart={handleShowChart} // 添加这一行
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
+      {/* 图表组件 */}
+      <ChartPaint
+        isOpen={isChartOpen}
+        onClose={() => setIsChartOpen(false)}
+        data={data.filter(item => selectedItems.includes(item.id))}
+      />
     </div>
   )
 }
