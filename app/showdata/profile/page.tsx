@@ -13,22 +13,28 @@ export default function ProfilePage() {
         "min-h-screen bg-background",
         "lg:pl-[240px]"
       )}>
-        <div className="p-6">
+        {/* 添加移动端标题 */}
+        <div className="flex items-center p-4 lg:hidden">
+          <h1 className="ml-2 text-xl font-bold">DSA智能监测系统</h1>
+        </div>
+        <div className="p-4 sm:p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">个人资料</h1>
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold">个人资料</h1>
               <ModeToggle />
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center space-y-4">
-                    <Avatar className="h-24 w-24">
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
                       <AvatarImage src="https://www.flysworld.top/img/favicon.png" alt="Avatar" />
                     </Avatar>
-                    <h2 className="text-2xl font-semibold">方乐阳</h2>
-                    <p className="text-sm text-muted-foreground">管理员</p>
+                    <div className="text-center">
+                      <h2 className="text-xl sm:text-2xl font-semibold">方乐阳</h2>
+                      <p className="text-sm text-muted-foreground mt-1">管理员</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -38,10 +44,10 @@ export default function ProfilePage() {
                   基本信息
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <p className="text-sm font-medium">用户名</p>
-                      <p className="text-sm text-muted-foreground">方乐阳</p>
+                      <p className="text-sm text-muted-foreground break-all">方乐阳</p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium">邮箱</p>
@@ -67,14 +73,14 @@ export default function ProfilePage() {
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <h3 className="text-md font-medium">指导教师</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed break-words">
                         张善新 - 江南大学物联网工程学院副教授，主要研究方向为模式识别与人工智能、云原生数字技术。
                       </p>
                     </div>
                     
                     <div className="space-y-2">
                       <h3 className="text-md font-medium">开发团队</h3>
-                      <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                         <div>
                           <p className="text-sm font-medium">方乐阳（组长）</p>
                           <p className="text-sm text-muted-foreground">
