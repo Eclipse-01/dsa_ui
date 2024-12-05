@@ -83,6 +83,87 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* 石板灰主题 */
+  .theme-slate {
+    --background: 217 33% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 47% 11%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 47% 11%;
+  }
+
+  /* 锌灰主题 */
+  .theme-zinc {
+    --background: 240 5.9% 98%;
+    --foreground: 240 5.9% 10%;
+    --primary: 240 5.9% 98%;
+    --primary-foreground: 240 5.9% 10%;
+  }
+
+  /* 天蓝主题 */
+  .theme-blue {
+    --background: 214 100% 98%;
+    --foreground: 214 100% 10%;
+    --primary: 214 100% 98%;
+    --primary-foreground: 214 100% 10%;
+  }
+
+  /* 天空蓝主题 */
+  .theme-sky {
+    --background: 204 67% 96%;
+    --foreground: 204 64% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 204 64% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 204 64% 12%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 204 67% 96%;
+    --secondary: 199 69% 84%;
+    --secondary-foreground: 204 64% 12%;
+    --muted: 199 69% 84%;
+    --muted-foreground: 199 20% 36%;
+    --accent: 199 69% 84%;
+    --accent-foreground: 204 64% 12%;
+    --border: 199 39% 84%;
+    --input: 199 39% 84%;
+    --ring: 199 89% 48%;
+  }
+
+  /* 翠绿主题 */
+  .theme-emerald {
+    --background: 152 81% 96%;
+    --foreground: 152 76% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 152 76% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 152 76% 12%;
+    --primary: 152 76% 36%;
+    --primary-foreground: 152 81% 96%;
+    --secondary: 152 76% 84%;
+    --secondary-foreground: 152 76% 12%;
+    --muted: 152 76% 84%;
+    --muted-foreground: 152 20% 36%;
+    --accent: 152 76% 84%;
+    --accent-foreground: 152 76% 12%;
+    --border: 152 39% 84%;
+    --input: 152 39% 84%;
+    --ring: 152 76% 36%;
+  }
+
+  /* 其他主题同理... */
 }
 
 @layer base {

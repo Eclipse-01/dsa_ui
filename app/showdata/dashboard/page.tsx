@@ -1,40 +1,19 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ModeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar-app"
-import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import { 
-  Heart, 
-  Stethoscope, 
-  Activity, 
-  Thermometer, 
-  Wind, 
-  Droplet,
-  HeartPulse,
-  AlertTriangle
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion } from "framer-motion";  // 引入动画库
+import { motion } from "framer-motion"
+import { BedSelector } from "./components/BedSelector"
+import { VitalAlerts, type AlertMessage } from "./components/VitalAlerts"
+import { VitalChart, BloodPressureChart } from "./components/VitalCharts"  // 更新导入
+import { VitalCard } from "./components/VitalCard"
+import { VITAL_RANGES } from "./constants"
 
 // 模拟实时数据
 const getRandomValue = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1) + min)
-}
-
-// 添加正常值范围常量
-const VITAL_RANGES = {
-  heartRate: { min: 60, max: 100, unit: 'BPM' },
-  bloodO2: { min: 95, max: 100, unit: '%' },
-  systolic: { min: 90, max: 140, unit: 'mmHg' },
-  diastolic: { min: 60, max: 90, unit: 'mmHg' },
-  temperature: { min: 36.1, max: 37.2, unit: '°C' },
-  respirationRate: { min: 12, max: 20, unit: '次/分' },
-  bloodGlucose: { min: 3.9, max: 6.1, unit: 'mmol/L' },
-  heartRateVariability: { min: 20, max: 200, unit: 'ms' },
-  stressLevel: { min: 1, max: 3, unit: '/5' }
 }
 
 interface VitalHistoryData {
@@ -52,12 +31,6 @@ interface VitalsHistory {
   stressLevel: VitalHistoryData[];
   systolic: VitalHistoryData[];
   diastolic: VitalHistoryData[];
-}
-
-interface AlertMessage {
-  title: string;
-  description: string;
-  type: 'warning' | 'error';
 }
 
 interface VitalData {
@@ -88,9 +61,25 @@ export default function DashboardPage() {
   })
 
   const [alerts, setAlerts] = useState<AlertMessage[]>([])
+  const [autoAlertEnabled, setAutoAlertEnabled] = useState(false);
+
+  // 在组件加载时读取设置
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('app_settings');
+    if (savedSettings) {
+      const { autoAlert } = JSON.parse(savedSettings);
+      setAutoAlertEnabled(autoAlert);
+    }
+  }, []);
 
   // 添加检查数据的函数
   const checkVitalSigns = (newVitals: VitalData) => {
+    // 如果自动报警未启用，则不执行检查
+    if (!autoAlertEnabled) {
+      setAlerts([]);
+      return;
+    }
+
     const newAlerts: AlertMessage[] = [];
 
     // 检查心率
@@ -201,126 +190,18 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [selectedBed]);
 
-  const renderVitalChart = (data: VitalHistoryData[], color: string) => (
-    <div className="h-12 w-24"> {/* 修改图表容器尺寸 */}
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-              <stop offset="95%" stopColor={color} stopOpacity={0.1}/>
-            </linearGradient>
-          </defs>
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke={color}
-            fill={`url(#gradient-${color})`}
-            isAnimationActive={true} // 启用动画
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  )
-
-  const renderBloodPressureChart = (
-    systolicData: VitalHistoryData[], 
-    diastolicData: VitalHistoryData[]
-  ) => {
-    // 合并数据以确保两条曲线使用相同的时间轴
-    const combinedData = systolicData.map((item, index) => ({
-      timestamp: item.timestamp,
-      systolic: item.value,
-      diastolic: diastolicData[index]?.value
-    }));
-
-    return (
-      <div className="h-12 w-24">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={combinedData}>
-            <defs>
-              <linearGradient id="gradient-systolic" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#9333ea" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#9333ea" stopOpacity={0.1}/>
-              </linearGradient>
-              <linearGradient id="gradient-diastolic" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#c084fc" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#c084fc" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
-            <Area
-              type="monotone"
-              dataKey="systolic"
-              stroke="#9333ea"
-              fill="url(#gradient-systolic)"
-              isAnimationActive={true} // 启用动画
-            />
-            <Area
-              type="monotone"
-              dataKey="diastolic"
-              stroke="#c084fc"
-              fill="url(#gradient-diastolic)"
-              isAnimationActive={true} // 启用动画
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  // 修改床位选择器为ShadCN风格
-  const BedSelector = () => (
-    <Select value={selectedBed} onValueChange={(value) => setSelectedBed(value)}>
-      <SelectTrigger className="w-48">
-        <SelectValue placeholder="选择床位" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="所有床位">所有床位</SelectItem>
-        {Array.from({length: 5}, (_, i) => (
-          <SelectItem key={i} value={`${i + 1}号床`}>
-            {`${i + 1}号床`}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-
   return (
     <div className="min-h-screen">
       <Sidebar className="hidden lg:block" />
-      <div className={cn(
-        "min-h-screen bg-background",
-        "lg:pl-[240px]" // 为侧边栏预留空间
-      )}>
-        {/* 添加警告显示区域 */}
-        {alerts.length > 0 && (
-          <div className="fixed top-4 right-4 z-50 space-y-2 w-80">
-            {alerts.map((alert, index) => (
-              <Alert
-                key={index}
-                variant={alert.type === "error" ? "destructive" : "default"}
-                className={cn(
-                  "animate-in slide-in-from-top-2",
-                  alert.type === "error" ? "border-red-600 bg-red-600" : "border-yellow-600 bg-yellow-600"
-                )}
-              >
-                <AlertTitle className="text-white">
-                  {alert.title}
-                </AlertTitle>
-                <AlertDescription className="text-white/90">
-                  {alert.description}
-                </AlertDescription>
-              </Alert>
-            ))}
-          </div>
-        )}
-
+      <div className={cn("min-h-screen bg-background", "lg:pl-[240px]")}>
+        <VitalAlerts alerts={alerts} />
+        
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold">生命体征监测</h1>
-                <BedSelector />
+                <BedSelector selectedBed={selectedBed} onBedChange={setSelectedBed} />
               </div>
               <ModeToggle />
             </div>
@@ -337,101 +218,14 @@ export default function DashboardPage() {
                 >
                   <h2 className="text-xl font-bold mb-4">{bed}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        心率
-                        <Heart className="w-6 h-6 text-red-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-red-500">
-                          {data.heartRate} <span className="text-base font-normal">BPM</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        血氧饱和度
-                        <Stethoscope className="w-6 h-6 text-blue-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-blue-500">
-                          {data.bloodO2}%
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        血压
-                        <Activity className="w-6 h-6 text-purple-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-purple-500">
-                          {data.bloodPressure} <span className="text-base font-normal">mmHg</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        体温
-                        <Thermometer className="w-6 h-6 text-orange-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-orange-500">
-                          {data.temperature}°C
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        呼吸率
-                        <Wind className="w-6 h-6 text-green-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-green-500">
-                          {data.respirationRate} <span className="text-base font-normal">次/分</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        血糖
-                        <Droplet className="w-6 h-6 text-yellow-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-yellow-500">
-                          {data.bloodGlucose} <span className="text-base font-normal">mmol/L</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        心率变异性
-                        <HeartPulse className="w-6 h-6 text-green-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-green-500">
-                          {data.heartRateVariability} <span className="text-base font-normal">ms</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                        压力水平
-                        <AlertTriangle className="w-6 h-6 text-red-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-red-500">
-                          {data.stressLevel} <span className="text-base font-normal">/5</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <VitalCard title="心率" value={data.heartRate} unit="BPM" icon="Heart" color="text-red-500" />
+                    <VitalCard title="血氧饱和度" value={data.bloodO2} unit="%" icon="Stethoscope" color="text-blue-500" />
+                    <VitalCard title="血压" value={data.bloodPressure} unit="mmHg" icon="Activity" color="text-purple-500" />
+                    <VitalCard title="体温" value={data.temperature} unit="°C" icon="Thermometer" color="text-orange-500" />
+                    <VitalCard title="呼吸率" value={data.respirationRate} unit="次/分" icon="Wind" color="text-green-500" />
+                    <VitalCard title="血糖" value={data.bloodGlucose} unit="mmol/L" icon="Droplet" color="text-yellow-500" />
+                    <VitalCard title="心率变异性" value={data.heartRateVariability} unit="ms" icon="HeartPulse" color="text-green-500" />
+                    <VitalCard title="压力水平" value={data.stressLevel} unit="/5" icon="AlertTriangle" color="text-red-500" />
                   </div>
                 </motion.div>
               ))
@@ -444,126 +238,14 @@ export default function DashboardPage() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      心率
-                      <Heart className="w-6 h-6 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-red-500">
-                          {bedsData[selectedBed].heartRate} <span className="text-base font-normal">BPM</span>
-                        </div>
-                        {renderVitalChart(vitalsHistory.heartRate, '#ef4444')}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* 其他卡片同样包裹在motion.div中以启用动画 */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      血氧饱和度
-                      <Stethoscope className="w-6 h-6 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-blue-500">
-                          {bedsData[selectedBed].bloodO2}%
-                        </div>
-                        {renderVitalChart(vitalsHistory.bloodO2, '#3b82f6')}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      血压
-                      <Activity className="w-6 h-6 text-purple-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-purple-500">
-                          {bedsData[selectedBed].bloodPressure} <span className="text-base font-normal">mmHg</span>
-                        </div>
-                        {renderBloodPressureChart(vitalsHistory.systolic, vitalsHistory.diastolic)}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      体温
-                      <Thermometer className="w-6 h-6 text-orange-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-orange-500">
-                          {bedsData[selectedBed].temperature}°C
-                        </div>
-                        {renderVitalChart(vitalsHistory.temperature, '#f97316')}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      呼吸率
-                      <Wind className="w-6 h-6 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-green-500">
-                          {bedsData[selectedBed].respirationRate} <span className="text-base font-normal">次/分</span>
-                        </div>
-                        {renderVitalChart(vitalsHistory.respirationRate, '#10b981')}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      血糖
-                      <Droplet className="w-6 h-6 text-yellow-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-yellow-500">
-                          {bedsData[selectedBed].bloodGlucose} <span className="text-base font-normal">mmol/L</span>
-                        </div>
-                        {renderVitalChart(vitalsHistory.bloodGlucose, '#f59e0b')}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      心率变异性
-                      <HeartPulse className="w-6 h-6 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-green-500">
-                          {bedsData[selectedBed].heartRateVariability} <span className="text-base font-normal">ms</span>
-                        </div>
-                        {renderVitalChart(vitalsHistory.heartRateVariability, '#10b981')}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between text-lg font-semibold">
-                      压力水平
-                      <AlertTriangle className="w-6 h-6 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-3xl font-bold text-red-500">
-                          {bedsData[selectedBed].stressLevel} <span className="text-base font-normal">/5</span>
-                        </div>
-                        {renderVitalChart(vitalsHistory.stressLevel, '#ef4444')}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <VitalCard title="心率" value={bedsData[selectedBed].heartRate} unit="BPM" icon="Heart" color="text-red-500" chartData={vitalsHistory.heartRate} chartColor="#ef4444" />
+                  <VitalCard title="血氧饱和度" value={bedsData[selectedBed].bloodO2} unit="%" icon="Stethoscope" color="text-blue-500" chartData={vitalsHistory.bloodO2} chartColor="#3b82f6" />
+                  <VitalCard title="血压" value={bedsData[selectedBed].bloodPressure} unit="mmHg" icon="Activity" color="text-purple-500" chartData={vitalsHistory.systolic} chartData2={vitalsHistory.diastolic} chartColor="#9333ea" chartColor2="#c084fc" />
+                  <VitalCard title="体温" value={bedsData[selectedBed].temperature} unit="°C" icon="Thermometer" color="text-orange-500" chartData={vitalsHistory.temperature} chartColor="#f97316" />
+                  <VitalCard title="呼吸率" value={bedsData[selectedBed].respirationRate} unit="次/分" icon="Wind" color="text-green-500" chartData={vitalsHistory.respirationRate} chartColor="#10b981" />
+                  <VitalCard title="血糖" value={bedsData[selectedBed].bloodGlucose} unit="mmol/L" icon="Droplet" color="text-yellow-500" chartData={vitalsHistory.bloodGlucose} chartColor="#f59e0b" />
+                  <VitalCard title="心率变异性" value={bedsData[selectedBed].heartRateVariability} unit="ms" icon="HeartPulse" color="text-green-500" chartData={vitalsHistory.heartRateVariability} chartColor="#10b981" />
+                  <VitalCard title="压力水平" value={bedsData[selectedBed].stressLevel} unit="/5" icon="AlertTriangle" color="text-red-500" chartData={vitalsHistory.stressLevel} chartColor="#ef4444" />
                 </motion.div>
               )
             )}

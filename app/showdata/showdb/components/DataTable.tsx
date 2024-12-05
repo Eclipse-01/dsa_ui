@@ -161,17 +161,27 @@ export function DataTable({
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="font-medium"
-              disabled={selectedItems.length === 0}
-              onClick={() => setIsDeleteDialogOpen(true)}
+              className={`font-medium ${selectedItems.length === 0 ? 'opacity-50' : ''}`}
+              onClick={() => {
+                if (selectedItems.length === 0) {
+                  showAlert("未选择数据", "请至少选择一条数据进行删除");
+                  return;
+                }
+                setIsDeleteDialogOpen(true);
+              }}
             >
               批量删除
             </Button>
             <Button
               variant="secondary"
-              className="font-medium"
-              disabled={selectedItems.length === 0}
-              onClick={handleExport}
+              className={`font-medium ${selectedItems.length === 0 ? 'opacity-50' : ''}`}
+              onClick={() => {
+                if (selectedItems.length === 0) {
+                  showAlert("未选择数据", "请至少选择一条数据进行导出");
+                  return;
+                }
+                handleExport();
+              }}
             >
               导出数据
             </Button>

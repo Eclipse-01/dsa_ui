@@ -179,7 +179,7 @@ export default function ShowDBPage() {
 
     const selectedData = data.filter(item => selectedItems.includes(item.id));
 
-    const headers = ["时间", "数据类型", "��值", "单位"];
+    const headers = ["时间", "数据类型", "数值", "单位"];
     const csvContent = [
       headers.join(","),
       ...selectedData.map(item => 

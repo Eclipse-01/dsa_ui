@@ -46,6 +46,27 @@ const chartConfig = {
 
 export function ChartPaint({ isOpen, onClose, data }: ChartPaintProps) {
   const [timeRange, setTimeRange] = React.useState("all")
+  const [isAnimationActive, setIsAnimationActive] = React.useState(true)
+
+  // 读取动画设置
+  React.useEffect(() => {
+    const savedSettings = localStorage.getItem('app_settings');
+    if (savedSettings) {
+      const { chartAnimation } = JSON.parse(savedSettings);
+      setIsAnimationActive(chartAnimation);
+    }
+
+    // 监听设置变更
+    const handleSettingsChange = (event: CustomEvent) => {
+      const { chartAnimation } = event.detail.settings;
+      setIsAnimationActive(chartAnimation);
+    };
+
+    window.addEventListener('settingsChanged', handleSettingsChange as EventListener);
+    return () => {
+      window.removeEventListener('settingsChanged', handleSettingsChange as EventListener);
+    };
+  }, []);
 
   // 转换数据格式
   const chartData = data.map(item => ({
@@ -178,6 +199,7 @@ export function ChartPaint({ isOpen, onClose, data }: ChartPaintProps) {
                   type="monotone"
                   fill="url(#fillValue)"
                   stroke="var(--color-value)"
+                  isAnimationActive={isAnimationActive}  /* 去掉逗号 */
                 />
                 <ChartLegend content={<ChartLegendContent />} />
               </AreaChart>

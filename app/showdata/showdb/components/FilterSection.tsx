@@ -135,20 +135,6 @@ export function FilterSection({
           >
             查看极值
           </Button>
-          <Button 
-            variant="secondary"
-            className="bg-primary/10 hover:bg-primary/20"
-            onClick={() => {
-              if (selectedItems.length === 0) {
-                showAlert("未选择数据", "请至少选择一条数据进行图表展示");
-                return;
-              }
-              handleShowChart();
-            }}
-          >
-            图表展示
-          </Button>
-
           {/* 极值对话框 */}
           <Dialog open={isExtremeDialogOpen} onOpenChange={setIsExtremeDialogOpen}>
             <DialogContent className="max-w-3xl">

@@ -75,7 +75,7 @@ def generate_data_entries(num_entries):
         entry["id"] = id_counter
         entry["timestamp"] = (base_time + timedelta(minutes=random.randint(0, 60*24*30))).strftime("%Y-%m-%d %H:%M:%S")
         entry["type"] = random.choice(list(NORMAL_RANGES.keys()))
-        entry["bed"] = f"{random.randint(1, 4)}ºÅ´²"
+        entry["bed"] = f"{random.randint(1, 5)}ºÅ´²"
         is_abnormal = random.random() < 0.05
         entry["value"] = generate_value(entry["type"], is_abnormal)
         entry["unit"] = UNITS_MAP[entry["type"]]

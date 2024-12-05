@@ -1,0 +1,5 @@
+{
+  "css.validate": false,
+  "tailwindCSS.validate": true,
+  "scss.validate": false
+}
