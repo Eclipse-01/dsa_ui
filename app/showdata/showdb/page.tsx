@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import {
   Table,
@@ -27,11 +27,16 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { VitalData, vitalDataList } from "@/app/data/vitalData"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 
 export default function ShowDBPage() {
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
-  const [dataType, setDataType] = useState("")
+  const [dataType, setDataType] = useState("all")
   const [data, setData] = useState<VitalData[]>(vitalDataList)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [newData, setNewData] = useState<Partial<VitalData>>({
@@ -70,8 +75,7 @@ export default function ShowDBPage() {
   const handleSearch = () => {
     let filteredData = [...vitalDataList]
     
-    if (dataType) {
-      // 直接使用完整的类型名称进行筛选
+    if (dataType && dataType !== "all") {
       filteredData = filteredData.filter(item => item.type === dataType)
     }
     
@@ -89,7 +93,7 @@ export default function ShowDBPage() {
   const handleClearFilters = () => {
     setStartDate(undefined)
     setEndDate(undefined)
-    setDataType("")
+    setDataType("all")
     setData(vitalDataList)
   }
 
@@ -132,13 +136,11 @@ export default function ShowDBPage() {
 
   // 修改导出数据函数
   const handleExport = () => {
-    // 如果没有选中任何数据，提示用户并返回
     if (selectedItems.length === 0) {
-      alert("请至少选择一条数据进行导出");
+      showAlert("未选择数据", "请至少选择一条数据进行导出");
       return;
     }
 
-    // 过滤出选中的数据
     const selectedData = data.filter(item => selectedItems.includes(item.id));
 
     const headers = ["时间", "数据类型", "数值", "单位"];
@@ -189,7 +191,7 @@ export default function ShowDBPage() {
       setCurrentPage(pageNumber)
       setPageInput("") // 清空输入
     } else {
-      alert(`请输入1-${totalPages}之间的页码`)
+      showAlert("页码无效", `请输入1-${totalPages}之间的页码`);
     }
   }
 
@@ -209,8 +211,94 @@ export default function ShowDBPage() {
     }
   }
 
+  // 在useState声明部分添加新的状态
+  const [isExtremeDialogOpen, setIsExtremeDialogOpen] = useState(false)
+  const [extremeValues, setExtremeValues] = useState<{ max: string; min: string }>({ max: '', min: '' })
+
+  // 修改计算极值的函数
+  const calculateExtremes = () => {
+    const selectedData = data.filter(item => selectedItems.includes(item.id))
+    
+    if (selectedData.length === 0) {
+      return null
+    }
+  
+    const numericData = selectedData.map(item => parseFloat(item.value))
+    const validData = numericData.filter(value => !isNaN(value))
+  
+    if (validData.length === 0) {
+      return { max: '无有效数值', min: '无有效数值' }
+    }
+  
+    const max = Math.max(...validData).toString()
+    const min = Math.min(...validData).toString()
+    return { max, min }
+  }
+  
+  // 修改处理极值查询的函数
+  const handleShowExtremes = () => {
+    if (selectedItems.length === 0) {
+      showAlert("未选择数据", "请至少选择一条数据进行极值统计");
+      return;
+    }
+    const extremes = calculateExtremes()
+    if (extremes) {
+      setExtremeValues(extremes)
+      setIsExtremeDialogOpen(true)
+    }
+  }
+
+  // 添加一个全局提示状态
+  const [alertInfo, setAlertInfo] = useState<{
+    show: boolean;
+    title: string;
+    description: string;
+  }>({
+    show: false,
+    title: "",
+    description: ""
+  });
+
+  // 修改 setAlertInfo 的调用方式，创建一个新的函数来处理
+  const showAlert = (title: string, description: string) => {
+    setAlertInfo({
+      show: true,
+      title,
+      description
+    });
+
+    // 5秒后自动关闭
+    setTimeout(() => {
+      setAlertInfo(prev => ({ ...prev, show: false }));
+    }, 5000);
+  };
+
   return (
     <div className="min-h-screen">
+      {alertInfo.show && (
+        <div className="fixed top-4 right-4 z-50 w-80">
+          <Alert 
+            variant="destructive" 
+            className="animate-in slide-in-from-top-2 border bg-red-600"
+          >
+            <div className="flex gap-2">
+              <AlertCircle className="h-4 w-4 text-white" />
+              <div className="flex-1">
+                <AlertTitle className="text-white">{alertInfo.title}</AlertTitle>
+                <AlertDescription className="text-white/90">{alertInfo.description}</AlertDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 text-white hover:bg-white/20"
+                onClick={() => setAlertInfo(prev => ({ ...prev, show: false }))}
+              >
+                ×
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
       <Sidebar className="hidden lg:block" />
       <div className={cn(
         "min-h-screen bg-background",
@@ -235,6 +323,7 @@ export default function ShowDBPage() {
                       <SelectValue placeholder="选择数据类型" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all" className="font-bold text-primary">所有类型</SelectItem>
                       <SelectItem value="心率">心率</SelectItem>
                       <SelectItem value="血氧饱和度">血氧饱和度</SelectItem>
                       <SelectItem value="血压">血压</SelectItem>
@@ -272,6 +361,61 @@ export default function ShowDBPage() {
 
                   <Button onClick={handleSearch}>查询</Button>
                   <Button variant="outline" onClick={handleClearFilters}>清除筛选</Button>
+                  <Button 
+                    variant="secondary" 
+                    className="bg-primary/10 hover:bg-primary/20"
+                    onClick={handleShowExtremes}
+                  >
+                    查看极值
+                  </Button>
+
+                  {/* 添加极值显示对话框 */}
+                  <Dialog open={isExtremeDialogOpen} onOpenChange={setIsExtremeDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>数据极值统计</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4 space-y-4">
+                        {selectedItems.length === 0 ? (
+                          <Alert variant="destructive" className="border bg-red-600">
+                            <div className="flex gap-2">
+                              <AlertCircle className="h-4 w-4 text-white" />
+                              <div className="flex-1">
+                                <AlertTitle className="text-white">未选择数据</AlertTitle>
+                                <AlertDescription className="text-white/90">
+                                  请至少选择一条数据后再进行极值统计
+                                </AlertDescription>
+                              </div>
+                            </div>
+                          </Alert>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                              <Card className="p-4 bg-primary/5">
+                                <p className="text-sm text-muted-foreground">最大值</p>
+                                <p className="text-2xl font-bold text-primary">{extremeValues.max}</p>
+                              </Card>
+                              <Card className="p-4 bg-primary/5">
+                                <p className="text-sm text-muted-foreground">最小值</p>
+                                <p className="text-2xl font-bold text-primary">{extremeValues.min}</p>
+                              </Card>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              * 统计范围：当前选中的 {selectedItems.length} 条数据
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex justify-end">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsExtremeDialogOpen(false)}
+                        >
+                          关闭
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>
@@ -319,15 +463,22 @@ export default function ShowDBPage() {
                     </DialogContent>
                   </Dialog>
                   <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="text-red-500"
-                        disabled={selectedItems.length === 0}
-                      >
-                        删除选中
-                      </Button>
-                    </DialogTrigger>
+                    <Button 
+                      variant="outline" 
+                      className={cn(
+                        "text-red-500",
+                        selectedItems.length === 0 && "opacity-50"
+                      )}
+                      onClick={() => {
+                        if (selectedItems.length === 0) {
+                          showAlert("未选择数据", "请至少选择一条数据进行删除");
+                          return;
+                        }
+                        setIsDeleteDialogOpen(true)
+                      }}
+                    >
+                      删除选中
+                    </Button>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>确认删除</DialogTitle>
@@ -354,8 +505,14 @@ export default function ShowDBPage() {
                   </Dialog>
                   <Button 
                     variant="outline" 
-                    onClick={handleExport}
-                    disabled={selectedItems.length === 0}
+                    onClick={() => {
+                      if (selectedItems.length === 0) {
+                        showAlert("未选择数据", "请至少选择一条数据导出");
+                      } else {
+                        handleExport()
+                      }
+                    }}
+                    className={selectedItems.length === 0 ? "opacity-50" : ""}
                   >
                     导出数据
                   </Button>
@@ -424,9 +581,14 @@ export default function ShowDBPage() {
                   <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <Button 
                       variant="outline" 
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 1}
-                      className="flex-1 sm:flex-none"
+                      onClick={() => {
+                        if (currentPage === 1) {
+                          showAlert("已是第一页", "无法前往上一页");
+                        } else {
+                          handlePrevPage()
+                        }
+                      }}
+                      className={currentPage === 1 ? "opacity-50" : ""}
                     >
                       上一页
                     </Button>
@@ -441,18 +603,28 @@ export default function ShowDBPage() {
                       />
                       <Button 
                         variant="outline"
-                        onClick={handlePageJump}
-                        disabled={!pageInput}
-                        className="whitespace-nowrap"
+                        onClick={() => {
+                          if (!pageInput) {
+                            showAlert("未输入页码", "请输入要跳转的页码");
+                          } else {
+                            handlePageJump()
+                          }
+                        }}
+                        className={!pageInput ? "opacity-50" : ""}
                       >
                         跳转
                       </Button>
                     </div>
                     <Button 
                       variant="outline" 
-                      onClick={handleNextPage}
-                      disabled={currentPage * itemsPerPage >= data.length}
-                      className="flex-1 sm:flex-none"
+                      onClick={() => {
+                        if (currentPage * itemsPerPage >= data.length) {
+                          showAlert("已是最后一页", "无法前往下一页");
+                        } else {
+                          handleNextPage()
+                        }
+                      }}
+                      className={currentPage * itemsPerPage >= data.length ? "opacity-50" : ""}
                     >
                       下一页
                     </Button>
