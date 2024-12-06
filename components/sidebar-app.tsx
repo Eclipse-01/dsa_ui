@@ -10,6 +10,7 @@ import {
   PanelsTopLeft,
   UserCircle2,
   ChevronLeft,
+  FileText,  // 添加文档图标
 } from "lucide-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -90,6 +91,16 @@ export function Sidebar({ className }: SidebarProps) {
                 >
                   <Settings className="mr-2 h-4 w-4" />
                   <span className={cn("transition-all", isCollapsed && "hidden")}>系统设置</span>
+                </Button>
+              </Link>
+              {/* 添加文档按钮 */}
+              <Link href="/document">
+                <Button
+                  variant={pathname === "/document" ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span className={cn("transition-all", isCollapsed && "hidden")}>文档</span>
                 </Button>
               </Link>
             </div>

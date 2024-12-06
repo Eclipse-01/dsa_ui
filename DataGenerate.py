@@ -1,50 +1,49 @@
-# -*- coding: gbk -*-
 import random
 import json
 from datetime import datetime, timedelta
 
-# ¶¨Òå³£Á¿
+# å®šä¹‰å¸¸é‡
 UNITS_MAP = {
-    "ĞÄÂÊ": "BPM",
-    "ÑªÑõ±¥ºÍ¶È": "%",
-    "ÑªÑ¹": "mmHg",
-    "ÌåÎÂ": "¡ãC",
-    "ºôÎüÂÊ": "´Î/·Ö",
-    "ÑªÌÇ": "mmol/L",
-    "ĞÄÂÊ±äÒìĞÔ": "ms",
-    "Ñ¹Á¦Ë®Æ½": "/5"
+    "å¿ƒç‡": "BPM",
+    "è¡€æ°§é¥±å’Œåº¦": "%",
+    "è¡€å‹": "mmHg",
+    "ä½“æ¸©": "Â°C",
+    "å‘¼å¸ç‡": "æ¬¡/åˆ†",
+    "è¡€ç³–": "mmol/L",
+    "å¿ƒç‡å˜å¼‚æ€§": "ms",
+    "å‹åŠ›æ°´å¹³": "/5"
 }
 
 NORMAL_RANGES = {
-    "ĞÄÂÊ": {"min": 60, "max": 100},
-    "ÑªÑõ±¥ºÍ¶È": {"min": 95, "max": 100},
-    "ÑªÑ¹": {
+    "å¿ƒç‡": {"min": 60, "max": 100},
+    "è¡€æ°§é¥±å’Œåº¦": {"min": 95, "max": 100},
+    "è¡€å‹": {
         "systolic": {"min": 90, "max": 140},
         "diastolic": {"min": 60, "max": 90}
     },
-    "ÌåÎÂ": {"min": 36.3, "max": 37.2},
-    "ºôÎüÂÊ": {"min": 12, "max": 20},
-    "ÑªÌÇ": {"min": 4.4, "max": 6.7},
-    "ĞÄÂÊ±äÒìĞÔ": {"min": 30, "max": 90},
-    "Ñ¹Á¦Ë®Æ½": {"min": 1, "max": 4}
+    "ä½“æ¸©": {"min": 36.3, "max": 37.2},
+    "å‘¼å¸ç‡": {"min": 12, "max": 20},
+    "è¡€ç³–": {"min": 4.4, "max": 6.7},
+    "å¿ƒç‡å˜å¼‚æ€§": {"min": 30, "max": 90},
+    "å‹åŠ›æ°´å¹³": {"min": 1, "max": 4}
 }
 
 ABNORMAL_RANGES = {
-    "ĞÄÂÊ": [{"min": 30, "max": 50}, {"min": 120, "max": 180}],
-    "ÑªÑõ±¥ºÍ¶È": [{"min": 85, "max": 92}],
-    "ÑªÑ¹": {
+    "å¿ƒç‡": [{"min": 30, "max": 50}, {"min": 120, "max": 180}],
+    "è¡€æ°§é¥±å’Œåº¦": [{"min": 85, "max": 92}],
+    "è¡€å‹": {
         "systolic": [{"min": 70, "max": 90}, {"min": 160, "max": 200}],
         "diastolic": [{"min": 40, "max": 55}, {"min": 100, "max": 120}]
     },
-    "ÌåÎÂ": [{"min": 35.0, "max": 36.0}, {"min": 38.0, "max": 40.0}],
-    "ºôÎüÂÊ": [{"min": 5, "max": 10}, {"min": 25, "max": 35}],
-    "ÑªÌÇ": [{"min": 2.0, "max": 3.9}, {"min": 11.0, "max": 15.0}],
-    "ĞÄÂÊ±äÒìĞÔ": [{"min": 10, "max": 25}, {"min": 100, "max": 150}],
-    "Ñ¹Á¦Ë®Æ½": [{"min": 5, "max": 5}]
+    "ä½“æ¸©": [{"min": 35.0, "max": 36.0}, {"min": 38.0, "max": 40.0}],
+    "å‘¼å¸ç‡": [{"min": 5, "max": 10}, {"min": 25, "max": 35}],
+    "è¡€ç³–": [{"min": 2.0, "max": 3.9}, {"min": 11.0, "max": 15.0}],
+    "å¿ƒç‡å˜å¼‚æ€§": [{"min": 10, "max": 25}, {"min": 100, "max": 150}],
+    "å‹åŠ›æ°´å¹³": [{"min": 5, "max": 5}]
 }
 
 def generate_value(data_type, is_abnormal=False):
-    if data_type == "ÑªÑ¹":
+    if data_type == "è¡€å‹":
         if is_abnormal:
             systolic_range = random.choice(ABNORMAL_RANGES[data_type]["systolic"])
             diastolic_range = random.choice(ABNORMAL_RANGES[data_type]["diastolic"])
@@ -60,7 +59,7 @@ def generate_value(data_type, is_abnormal=False):
     ranges = ABNORMAL_RANGES[data_type] if is_abnormal else [NORMAL_RANGES[data_type]]
     selected_range = random.choice(ranges)
     
-    if data_type in ["ÌåÎÂ", "ÑªÑõ±¥ºÍ¶È", "ÑªÌÇ"]:
+    if data_type in ["ä½“æ¸©", "è¡€æ°§é¥±å’Œåº¦", "è¡€ç³–"]:
         return f"{random.uniform(selected_range['min'], selected_range['max']):.1f}"
     else:
         return str(random.randint(selected_range["min"], selected_range["max"]))
@@ -75,7 +74,7 @@ def generate_data_entries(num_entries):
         entry["id"] = id_counter
         entry["timestamp"] = (base_time + timedelta(minutes=random.randint(0, 60*24*30))).strftime("%Y-%m-%d %H:%M:%S")
         entry["type"] = random.choice(list(NORMAL_RANGES.keys()))
-        entry["bed"] = f"{random.randint(1, 5)}ºÅ´²"
+        entry["bed"] = f"{random.randint(1, 5)}å·åºŠ"
         is_abnormal = random.random() < 0.05
         entry["value"] = generate_value(entry["type"], is_abnormal)
         entry["unit"] = UNITS_MAP[entry["type"]]
@@ -89,16 +88,16 @@ def generate_json_data(num_entries):
     json_data = {"vitalDataList": entries}
     return json.dumps(json_data, indent=2, ensure_ascii=False)
 
-# Éú³ÉJSONÊı¾İ²¢±£´æµ½ÎÄ¼ş
-generated_json_data = generate_json_data(100000)
-output_file_path = 'public/data/vitalData.json'  # ×¢ÒâÕâÀï²»ĞèÒª app Ç°×º
+# ç”ŸæˆJSONæ•°æ®å¹¶ä¿å­˜åˆ°æ–‡ä»¶
+generated_json_data = generate_json_data(1000)
+output_file_path = 'data/vitalData.json'  # æ³¨æ„è¿™é‡Œä¸éœ€è¦ app å‰ç¼€
 
-# È·±£Êä³öÄ¿Â¼´æÔÚ
+# ç¡®ä¿ç›®å½•å­˜åœ¨
 import os
 os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
 
-# ½«Êı¾İĞ´ÈëÎÄ¼ş
+# å†™å…¥å¹¶ä¿å­˜æ–‡ä»¶
 with open(output_file_path, 'w', encoding='utf-8') as f:
     f.write(generated_json_data)
 
-print(f"Êı¾İÒÑ³É¹¦±£´æµ½: {output_file_path}")
+print(f"æ•°æ®å·²æˆåŠŸä¿å­˜åˆ°: {output_file_path}")

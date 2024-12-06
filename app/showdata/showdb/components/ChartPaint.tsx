@@ -44,6 +44,17 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
+// 最大数据点数
+const MAX_DATA_POINTS = 50
+
+// 降采样函数
+function downsampleData(data: any[], maxPoints: number) {
+  if (data.length <= maxPoints) return data
+  
+  const step = Math.ceil(data.length / maxPoints)
+  return data.filter((_, index) => index % step === 0)
+}
+
 export function ChartPaint({ isOpen, onClose, data }: ChartPaintProps) {
   const [timeRange, setTimeRange] = React.useState("all")
   const [isAnimationActive, setIsAnimationActive] = React.useState(true)
@@ -74,40 +85,45 @@ export function ChartPaint({ isOpen, onClose, data }: ChartPaintProps) {
     value: parseFloat(item.value) || 0
   }))
 
-  // 根据时间范围过滤数据
+  // 根据时间范围过滤并降采样数据
   const filteredData = React.useMemo(() => {
-    if (timeRange === "all") return chartData
-
-    const now = new Date()
-    const startDate = new Date()
+    let result = chartData
     
-    switch (timeRange) {
-      case "3d":
-        startDate.setDate(now.getDate() - 3)
-        break
-      case "1d":
-        startDate.setDate(now.getDate() - 1)
-        break
-      case "12h":
-        startDate.setHours(now.getHours() - 12)
-        break
-      case "6h":
-        startDate.setHours(now.getHours() - 6)
-        break
-      case "3h":
-        startDate.setHours(now.getHours() - 3)
-        break
-      case "1h":
-        startDate.setHours(now.getHours() - 1)
-        break
-      case "30min":
-        startDate.setMinutes(now.getMinutes() - 30)
-        break
-      default:
-        return chartData
+    if (timeRange !== "all") {
+      const now = new Date()
+      const startDate = new Date()
+      
+      switch (timeRange) {
+        case "3d":
+          startDate.setDate(now.getDate() - 3)
+          break
+        case "1d":
+          startDate.setDate(now.getDate() - 1)
+          break
+        case "12h":
+          startDate.setHours(now.getHours() - 12)
+          break
+        case "6h":
+          startDate.setHours(now.getHours() - 6)
+          break
+        case "3h":
+          startDate.setHours(now.getHours() - 3)
+          break
+        case "1h":
+          startDate.setHours(now.getHours() - 1)
+          break
+        case "30min":
+          startDate.setMinutes(now.getMinutes() - 30)
+          break
+        default:
+          return chartData
+      }
+
+      result = chartData.filter(item => new Date(item.date) >= startDate)
     }
 
-    return chartData.filter(item => new Date(item.date) >= startDate)
+    // 应用降采样
+    return downsampleData(result, MAX_DATA_POINTS)
   }, [chartData, timeRange])
 
   return (
