@@ -39,7 +39,7 @@ export class InfluxDBService {
                     message = '请求的资源不存在';
                     break;
                 case 413:
-                    message = '请求数��过大';
+                    message = '请求数据过大';
                     break;
                 case 422:
                     message = `数据无效: ${errorText}`;
@@ -100,6 +100,40 @@ export class InfluxDBService {
             }
         } catch (error) {
             console.error('写入错误:', error);
+            throw error;
+        }
+    }
+
+    // 删除数据
+    async deleteData(predicates: Record<string, string>) {
+        const deleteQuery = `
+            from(bucket: "${this.bucket}")
+                |> range(start: -3650d)
+                |> filter(fn: (r) => ${Object.entries(predicates)
+                    .map(([key, value]) => `r["${key}"] == "${value}"`)
+                    .join(' and ')})
+                |> filter(fn: (r) => r["_field"] == "value" or r["_field"] == "id")
+                |> drop()`
+
+        try {
+            const params = new URLSearchParams({ 
+                org: this.org,
+                bucket: this.bucket
+            });
+
+            const response = await fetch(`/api/query?${params}`, {
+                method: 'POST',
+                headers: this.getHeaders('application/vnd.flux'),
+                body: deleteQuery
+            });
+
+            if (!response.ok) {
+                return this.handleErrorResponse(response, '删除');
+            }
+
+            return true;
+        } catch (error) {
+            console.error('删除错误:', error);
             throw error;
         }
     }

@@ -25,9 +25,9 @@ export default function DocumentPage() {
                 <Tabs defaultValue="usage" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="usage">使用说明</TabsTrigger>
-                    <TabsTrigger value="deployment">部署指南</TabsTrigger>
+                    <TabsTrigger value="deployment">部署前端</TabsTrigger>
                     <TabsTrigger value="database">数据库设计</TabsTrigger>
-                    <TabsTrigger value="influxdb">时序数据库</TabsTrigger>
+                    <TabsTrigger value="influxdb">部署数据库</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="usage" className="space-y-4">

@@ -23,6 +23,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { executeFluxQuery, getPredefinedQueries } from '@/lib/influxdb'
+import { InfluxDBService } from "@/src/services/influxdb"
 
 interface CommandHistory {
   command: string
@@ -81,6 +82,16 @@ export function DatabaseCLI() {
       icon: <Database className="mr-2 h-4 w-4" />,
       text: "SHOW DATABASES",
       description: "显示所有数据库"
+    },
+    {
+      icon: <Database className="mr-2 h-4 w-4" />,
+      text: "INSERT TEST_DATA",
+      description: "插入测试数据"
+    },
+    {
+      icon: <Database className="mr-2 h-4 w-4" />,
+      text: "DELETE TEST_DATA",
+      description: "删除测试数据"
     }
   ]
 
@@ -219,6 +230,16 @@ const executeInfluxCommand = async (command: string): Promise<string> => {
       return formatResults(results, "查询结果")
     }
 
+    if (command.toLowerCase() === "insert test_data") {
+      const results = await insertTestData(config.bucket)
+      return "测试数据插入成功"
+    }
+
+    if (command.toLowerCase() === "delete test_data") {
+      const results = await deleteTestData(config.bucket)
+      return "测试数据删除成功"
+    }
+
     if (command.toLowerCase() === "help") {
       return `可用命令：
 - SHOW DATABASES: 显示所有数据库
@@ -226,6 +247,8 @@ const executeInfluxCommand = async (command: string): Promise<string> => {
 - SHOW TABLES: 显示所有数据表
 - SHOW FIELDS: 显示所有字段
 - SELECT ...: 执行查询（将自动转换为Flux查询）
+- INSERT TEST_DATA: 插入测试数据
+- DELETE TEST_DATA: 删除测试数据
 - HELP: 显示本帮助信息`
     }
 
@@ -271,4 +294,79 @@ const convertSQLToFlux = (sql: string, bucket: string): string => {
   }
 
   return flux
+}
+
+const insertTestData = async (bucket: string): Promise<void> => {
+  const config = JSON.parse(localStorage.getItem('influxdb_config') || '{}')
+  const influxDB = new InfluxDBService(
+    config.url,
+    config.token,
+    config.org,
+    bucket
+  )
+
+  const testData = [
+    {
+      tags: {
+        bed: "-1",  // 使用-1作为测试数据的床位号
+        type: "体温",
+        unit: "°C"
+      },
+      fields: {
+        value: 36.9,
+        id: 74282
+      }
+    },
+    {
+      tags: {
+        bed: "-1",  // 使用-1作为测试数据的床位号
+        type: "心率",
+        unit: "次/分"
+      },
+      fields: {
+        value: 75.0,
+        id: 74283
+      }
+    },
+    {
+      tags: {
+        bed: "-1",  // 使用-1作为测试数据的床位号
+        type: "血氧",
+        unit: "%"
+      },
+      fields: {
+        value: 98.0,
+        id: 74284
+      }
+    }
+  ]
+
+  // 写入测试数据
+  for (const data of testData) {
+    await influxDB.writeData("vital_signs", data.tags, data.fields)
+  }
+}
+
+const deleteTestData = async (bucket: string): Promise<void> => {
+  const config = JSON.parse(localStorage.getItem('influxdb_config') || '{}')
+  const influxDB = new InfluxDBService(
+    config.url,
+    config.token,
+    config.org,
+    bucket
+  )
+
+  try {
+    const result = await influxDB.deleteData({
+      _measurement: "vital_signs",
+      bed: "-1"
+    });
+
+    if (!result) {
+      throw new Error('删除操作失败');
+    }
+  } catch (error) {
+    console.error('删除测试数据失败:', error);
+    throw error;
+  }
 }

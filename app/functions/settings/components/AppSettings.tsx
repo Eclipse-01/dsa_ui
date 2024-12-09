@@ -61,7 +61,7 @@ export function AppSettings() {
       <CardContent className="space-y-6">
         {mounted && ( // 只在客户端渲染主题选择器
           <div className="space-y-2">
-            <Label>深色模式</Label>
+            <Label>模式</Label>
             <Select value={theme || "system"} onValueChange={setTheme}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择主题模式" />

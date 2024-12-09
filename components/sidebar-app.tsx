@@ -9,8 +9,7 @@ import {
   LogOut,
   PanelsTopLeft,
   UserCircle2,
-  ChevronLeft,
-  FileText,  // 添加文档图标
+  FileText,
 } from "lucide-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -21,14 +20,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useState } from "react"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const handleLogout = () => {
     // 这里可以添加清除token等登出逻辑
@@ -39,33 +36,16 @@ export function Sidebar({ className }: SidebarProps) {
     router.push('/showdata/dashboard')
   }
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed)
-  }
-
   return (
     <div className={cn(
-      "fixed top-0 left-0 h-screen border-r",
-      isCollapsed ? "w-[80px]" : "w-[240px]",
+      "fixed top-0 left-0 h-screen border-r w-[240px]",
       "transition-all duration-300 ease-in-out z-40 bg-background",
       className
     )}>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute -right-4 top-2 z-10 h-8 w-8 rounded-full border bg-background"
-        onClick={toggleSidebar}
-      >
-        <ChevronLeft className={cn("h-4 w-4 transition-all", isCollapsed && "rotate-180")} />
-      </Button>
-
       <div className="h-[calc(100%-70px)] overflow-y-auto">
         <div className="space-y-4 py-4">
           <div className="px-3 py-2">
-            <h2 className={cn(
-              "mb-2 px-4 text-lg font-semibold transition-all",
-              isCollapsed && "hidden"
-            )}>医疗智能数据系统</h2>
+            <h2 className="mb-2 px-4 text-lg font-semibold">医疗智能数据系统</h2>
             <div className="space-y-1">
               <Button
                 variant={pathname === "/dashboard" ? "secondary" : "ghost"}
@@ -73,7 +53,7 @@ export function Sidebar({ className }: SidebarProps) {
                 onClick={handleDashboard}
               >
                 <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span className={cn("transition-all", isCollapsed && "hidden")}>数据监控面板</span>
+                <span>数据监控面板</span>
               </Button>
               <Link href="/showdata/showdb">
                 <Button
@@ -81,7 +61,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className="w-full justify-start"
                 >
                   <History className="mr-2 h-4 w-4" />
-                  <span className={cn("transition-all", isCollapsed && "hidden")}>数据历史记录</span>
+                  <span>数据历史记录</span>
                 </Button>
               </Link>
               <Link href="/functions/settings">
@@ -90,17 +70,16 @@ export function Sidebar({ className }: SidebarProps) {
                   className="w-full justify-start"
                 >
                   <Settings className="mr-2 h-4 w-4" />
-                  <span className={cn("transition-all", isCollapsed && "hidden")}>系统设置</span>
+                  <span>系统设置</span>
                 </Button>
               </Link>
-              {/* 添加文档按钮 */}
               <Link href="/document">
                 <Button
                   variant={pathname === "/document" ? "secondary" : "ghost"}
                   className="w-full justify-start"
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  <span className={cn("transition-all", isCollapsed && "hidden")}>文档</span>
+                  <span>文档</span>
                 </Button>
               </Link>
             </div>
@@ -115,7 +94,7 @@ export function Sidebar({ className }: SidebarProps) {
               <Avatar className="h-8 w-8 mr-2">
                 <AvatarImage src="https://www.flysworld.top/img/favicon.png" alt="Avatar" />
               </Avatar>
-              <div className={cn("flex flex-col items-start transition-all", isCollapsed && "hidden")}>
+              <div className="flex flex-col items-start">
                 <span>COTOMO</span>
                 <span className="text-xs text-muted-foreground">管理员权限</span>
               </div>
