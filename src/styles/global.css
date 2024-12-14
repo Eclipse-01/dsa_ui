@@ -1,0 +1,12 @@
+:root {
+  --font-family: system-ui;
+}
+
+html body,
+html body *:not(i):not(.icon):not([class*="icon"]) {
+  font-family: var(--font-family), var(--font-misans), -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.geist {
+  font-family: var(--font-family), var(--font-misans), -apple-system, BlinkMacSystemFont, sans-serif !important;
+}

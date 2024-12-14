@@ -1,10 +1,10 @@
 export interface VitalData {
-  id: string  // 将 id 类型从 number 改为 string
-  timestamp: string
-  type: string
-  value: string
-  unit: string
-  bed: string
+  id: string; // 改为string类型
+  timestamp: string;
+  type: string;
+  value: string;
+  unit: string;
+  bed: string;
 }
 
 export interface VitalDataResponse {
@@ -50,19 +50,209 @@ export const NORMAL_RANGES = {
 // 移除静态数据列表
 export const vitalDataList: VitalData[] = []
 
-// 添加加载数据的函数
-export async function loadVitalData(): Promise<VitalData[]> {
+// 添加查询参数接口
+export interface QueryParams {
+  page: number;
+  pageSize: number;
+  startDate?: string;
+  endDate?: string;
+  dataType?: string;
+  bedFilter?: string;
+}
+
+export interface QueryResponse {
+  data: VitalData[];
+  total: number;
+  hasNextPage: boolean;
+}
+
+// 改进 getStoredConfig 函数，添加配置验证
+function getStoredConfig() {
   try {
-    // 修改请求路径
-    const response = await fetch('/data/vitalData.json')
-    if (!response.ok) {
-      console.error(`HTTP error! status: ${response.status}`)
-      throw new Error('Failed to load data')
+    if (typeof window === 'undefined') return null;
+    const config = localStorage.getItem('influxdb_config');
+    if (!config) return null;
+    
+    const parsedConfig = JSON.parse(config);
+    // 验证必要的配置字段
+    if (!parsedConfig.url || !parsedConfig.token || !parsedConfig.org || !parsedConfig.bucket) {
+      throw new Error('数据库配置不完整');
     }
-    const data: VitalDataResponse = await response.json()
-    return data.vitalDataList
+    return parsedConfig;
   } catch (error) {
-    console.error('Error loading vital data:', error)
-    return []
+    console.error('读取配置失败:', error);
+    return null;
+  }
+}
+
+// 改进重试函数
+const retryFetch = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
+  let lastError: Error;  // 明确指定错误类型
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        // 添加超时处理
+        signal: AbortSignal.timeout(30000), // 30秒超时
+      });
+      
+      // 检查响应状态
+      if (response.ok) {
+        return response;
+      }
+      
+      // 如果是 401/403，不需要重试
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('认证失败，请检查数据库配置');
+      }
+      
+      lastError = new Error(`HTTP错误: ${response.status}`);
+    } catch (error: unknown) {  // 明确指定错误类型
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('请求超时');
+      }
+      // 最后一次重试失败才抛出错误
+      if (i === retries - 1) {
+        break;
+      }
+      // 等待时间随重试次数增加
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+    }
+  }
+  
+  throw lastError;
+};
+
+// 修改数据加载函数
+import { dataCache } from '@/app/store/data-cache';
+
+export const loadVitalData = async (params: QueryParams): Promise<QueryResponse> => {
+  try {
+    // 检查缓存
+    const cached = dataCache.get(params);
+    if (cached) {
+      console.log('从缓存获取数据');
+      return cached;
+    }
+
+    const config = getStoredConfig();
+    if (!config) {
+      throw new Error('数据库配置未找到或无效，请检查配置');
+    }
+
+    // 构建查询参数
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    console.log('请求参数:', Object.fromEntries(queryParams.entries()));
+
+    const response = await retryFetch(
+      `/api/vital-data?${queryParams.toString()}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-influxdb-config': JSON.stringify(config),
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API响应错误:', response.status, errorText);
+      throw new Error(`请求失败: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('API响应:', {
+      total: result.total,
+      dataLength: result.data?.length,
+      hasNextPage: result.hasNextPage,
+      success: result.success,
+      debug: result.debug
+    });
+
+    // 添加数据验证
+    if (!result.success || !Array.isArray(result.data)) {
+      console.error('Invalid API response:', result);
+      throw new Error('返回的数据格式不正确');
+    }
+
+    // 确保数据量不超过页面大小
+    const validData = result.data.slice(0, params.pageSize);
+    const total = typeof result.total === 'number' ? result.total : validData.length;
+
+    const responseData = {
+      data: validData,
+      total,
+      hasNextPage: result.hasNextPage
+    };
+    
+    dataCache.set(params, responseData.data, responseData.total, responseData.hasNextPage);
+    return responseData;
+
+  } catch (error) {
+    console.error('数据加载失败:', error);
+    throw new Error(error instanceof Error ? error.message : '加载数据失败，请检查网络连接');
+  }
+};
+
+// 改进删除数据函数
+export async function deleteVitalData(ids: string[]): Promise<boolean> {
+  try {
+    const config = getStoredConfig();
+    if (!config) {
+      throw new Error('数据库配置未找到，请先配置数据库连接');
+    }
+
+    const response = await retryFetch('/api/influxdb', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-influxdb-config': JSON.stringify(config)
+      },
+      body: JSON.stringify({ 
+        action: 'delete', 
+        ids,
+        timestamp: new Date().toISOString() // 添加时间戳
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || '删除失败');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('删除数据失败:', error);
+    throw error;
+  }
+}
+
+// 添加数据操作函数
+export async function addVitalData(data: Partial<VitalData>): Promise<boolean> {
+  try {
+    const config = getStoredConfig()
+    if (!config) throw new Error('InfluxDB configuration not found')
+
+    const response = await fetch('/api/influxdb', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-influxdb-config': JSON.stringify(config)
+      },
+      body: JSON.stringify({ action: 'write', ...data }),
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error adding data:', error)
+    return false
   }
 }

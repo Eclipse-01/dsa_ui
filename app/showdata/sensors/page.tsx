@@ -83,65 +83,19 @@ export default function SensorsPage() {
   }
 
   // 初始传感器数据
-  const initialSensors = [
-    { 
-      id: 1, 
-      sensorId: "心率123456", 
-      type: "心率", 
-      model: "XD-58C", 
-      status: "connected", 
-      port: "COM3", 
-      battery: 85, 
-      bed: "1号床", 
-      isNetwork: false 
-    },
-    { 
-      id: 2, 
-      sensorId: "血压123456", 
-      type: "血压", 
-      model: "BP-102A", 
-      status: "connected", 
-      port: "COM4", 
-      battery: 72, 
-      bed: "1号床", 
-      isNetwork: false 
-    },
-    { 
-      id: 3, 
-      sensorId: "体温123456", 
-      type: "体温", 
-      model: "DS18B20", 
-      status: "connected", 
-      port: "COM5", 
-      battery: 93, 
-      bed: "1号床", 
-      isNetwork: false 
-    },
-    { 
-      id: 4, 
-      sensorId: "呼吸123456", 
-      type: "呼吸率", 
-      model: "RR-100", 
-      status: "connected", 
-      port: "COM6", 
-      battery: 88, 
-      bed: "1号床", 
-      isNetwork: false 
-    },
-    { 
-      id: 5, 
-      sensorId: "血糖123456", 
-      type: "血糖", 
-      model: "BG-200", 
-      status: "connected", 
-      port: "COM7", 
-      battery: 76, 
-      bed: "1号床", 
-      isNetwork: false 
-    }
-  ]
+  const initialSensors = typeOptions.map((type, index) => ({
+    id: index + 1,
+    sensorId: `${type.slice(0, 1)}${Date.now().toString().slice(-6)}`,
+    type,
+    model: sensorModels[type as keyof typeof sensorModels],
+    status: "connected",
+    port: `COM${index + 3}`,
+    battery: generateRandomBattery(),
+    bed: "1号床",
+    isNetwork: false
+  }))
 
-  const [sensors, setSensors] = useState<Array<any>>(initialSensors)
+  const [sensors, setSensors] = useState<Array<any>>([])
   const [portError, setPortError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [newSensor, setNewSensor] = useState({ 
@@ -167,9 +121,8 @@ export default function SensorsPage() {
     if (savedSensors) {
       setSensors(JSON.parse(savedSensors))
     } else {
-      // 如果没有保存的数据，使用初始数据
-      setSensors(initialSensors)
-      localStorage.setItem('medical_sensors', JSON.stringify(initialSensors))
+      // 如果没有保存的数据，使用初始化的1号床传感器数据
+      saveSensors(initialSensors)
     }
   }, [])
 

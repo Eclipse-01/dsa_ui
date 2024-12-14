@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar-app"
 import { cn } from "@/lib/utils"
-import { VitalData, loadVitalData } from "@/app/data/vitalData"
+import { VitalData, loadVitalData, addVitalData, deleteVitalData, QueryParams, UNITS_MAP } from "@/app/data/vitalData"
 import { FilterSection } from "./components/FilterSection"
 import { DataTable } from "./components/DataTable"
 import { format } from "date-fns"
@@ -11,17 +11,26 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChartPaint } from "./components/ChartPaint"
+import { dataCache } from '@/app/store/data-cache'
+
+// 添加类型定义
+type DataItem = VitalData & {
+  id: string; // 将id改为string类型
+}
 
 export default function ShowDBPage() {
-  // 修改状态初始化
-  const [data, setData] = useState<VitalData[]>([])
+  // 确保使用相同的页面大小常量
+  const PAGE_SIZE = 10;
+
+  // 修改状态初始化，使用新的类型
+  const [data, setData] = useState<DataItem[]>([])
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
   const [dataType, setDataType] = useState("all")
   const [bedFilter, setBedFilter] = useState("all")
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [selectedItems, setSelectedItems] = useState<string[]>([]) // 改为string[]
   const [newData, setNewData] = useState<Partial<VitalData>>({
-    timestamp: format(new Date(), "yyyy-MM-dd HH:mm"),
+    timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     type: "",
     value: "",
     unit: "",
@@ -31,31 +40,30 @@ export default function ShowDBPage() {
   // 添加分页相关状态
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10 // 每页显示的数据条数
-  
-  // 修改 getCurrentPageData 方法，添加日志
+  const [totalPages, setTotalPages] = useState(1)  // 添加此行
+  const [totalRecords, setTotalRecords] = useState(0); // 添加此行
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  // 修改 getCurrentPageData 方法，确保返回正确的数据数量
   const getCurrentPageData = () => {
     if (!data || !Array.isArray(data)) {
       console.error('数据无效');
       return [];
     }
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageData = data.slice(startIndex, endIndex);
-    console.log('当前页数据:', pageData);
-    return pageData;
+    return data; // 直接返回当前页数据，因为后端已经处理了分页
   }
 
   // 删除错误的 getPageData 函数，添加正确的 handleNextPage 函数
   // 修改分页处理函数
   const handleNextPage = () => {
-    if (currentPage * itemsPerPage < data.length) {
-      setCurrentPage(prev => prev + 1)
+    if (hasNextPage && !isLoading) {
+      setCurrentPage(prev => prev + 1);
     }
   }
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1)
+    if (currentPage > 1 && !isLoading) {
+      setCurrentPage(prev => prev - 1);
     }
   }
   
@@ -63,112 +71,204 @@ export default function ShowDBPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   // 修改数据加载逻辑
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true)
-        const loadedData = await loadVitalData()
-        if (Array.isArray(loadedData)) {
-          setData(loadedData)
-        } else {
-          console.error('数据格式错误:', loadedData)
-          setData([])
-          showAlert("错误", "数据格式错误")
-        }
-      } catch (error) {
-        console.error('加载数据失败:', error)
-        setData([])
-        showAlert("错误", "加载数据失败")
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Loading page:', currentPage); // 调试日志
 
-    loadData()
-  }, [])
+      const params: QueryParams = {
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+        dataType: dataType === 'all' ? undefined : dataType,
+        bedFilter: bedFilter === 'all' ? undefined : bedFilter
+      };
+      
+      const response = await loadVitalData(params);
+      
+      if (response && Array.isArray(response.data)) {
+        // 确保数据长度不超过页面大小
+        const limitedData = response.data.slice(0, PAGE_SIZE);
+        setData(limitedData);
+        setTotalRecords(response.total);
+        setTotalPages(Math.ceil(response.total / PAGE_SIZE));
+        setHasNextPage(response.hasNextPage);
+        
+        // 如果当前页无数据且不是第一页，自动回到上一页
+        if (limitedData.length === 0 && currentPage > 1) {
+          setCurrentPage(prev => prev - 1);
+        }
+      } else {
+        console.error('Invalid response format:', response);
+        setData([]);
+        setTotalRecords(0);
+        setTotalPages(1);
+        setHasNextPage(false);
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      showAlert("错误", "加载数据失败，请重试");
+      setData([]);
+      setTotalRecords(0);
+      setTotalPages(1);
+      setHasNextPage(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchData = async () => {
+      if (mounted) {
+        await loadData();
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentPage, startDate, endDate, dataType, bedFilter]);
 
   // 修改查询数据逻辑
-  const handleSearch = () => {
+  const handleSearch = async () => {
     try {
-      const loadData = async () => {
-        const loadedData = await loadVitalData()
-        let filteredData = [...loadedData]
-        
-        if (dataType && dataType !== "all") {
-          filteredData = filteredData.filter(item => item.type === dataType)
-        }
-        
-        if (bedFilter && bedFilter !== "all") {
-          filteredData = filteredData.filter(item => item.bed === bedFilter)
-        }
-        
-        if (startDate && endDate) {
-          filteredData = filteredData.filter(item => {
-            const itemDate = new Date(item.timestamp)
-            return itemDate >= startDate && itemDate <= endDate
-          })
-        }
-        
-        setData(filteredData)
-        setCurrentPage(1) // 重置页码
+      setCurrentPage(1); // 重置到第一页
+      setIsLoading(true);
+      const params: QueryParams = {
+        page: 1,
+        pageSize: itemsPerPage,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+        dataType: dataType === 'all' ? undefined : dataType,
+        bedFilter: bedFilter === 'all' ? undefined : bedFilter
+      };
+      
+      const response = await loadVitalData(params);
+      if (response) {
+        const { data: loadedData, total } = response;
+        setData(loadedData as DataItem[]);
+        setTotalRecords(total);
+        setTotalPages(Math.ceil(total / itemsPerPage));
       }
-
-      loadData()
     } catch (error) {
-      console.error('筛选数据失败:', error)
-      showAlert("错误", "筛选数据失败")
+      console.error('查询数据失败:', error);
+      showAlert("错误", error instanceof Error ? error.message : "查询数据失败，请重试");
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
+  // 添加清除缓存功能
+  const clearCache = () => {
+    dataCache.clear();
+    showAlert("提示", "数据缓存已清除");
+  };
 
   // 修改清除筛选器函数
   const handleClearFilters = async () => {
-    setStartDate(undefined)
-    setEndDate(undefined)
-    setDataType("all")
-    setBedFilter("all")
-    const loadedData = await loadVitalData()
-    setData(loadedData)
-    setCurrentPage(1)
-  }
+    clearCache(); // 清除缓存
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setDataType("all");
+    setBedFilter("all");
+    setCurrentPage(1);
+    
+    const params: QueryParams = {
+      page: 1,
+      pageSize: itemsPerPage
+    };
+    
+    try {
+      const response = await loadVitalData(params);
+      setData(response.data as DataItem[]);
+      setTotalRecords(response.total);
+      setTotalPages(Math.ceil(response.total / itemsPerPage));
+    } catch (error) {
+      console.error('清除筛选器失败:', error);
+      showAlert("错误", "重置数据失败");
+    }
+  };
 
   // 新增数据
-  const handleAdd = () => {
-    if (!newData.type || !newData.value || !newData.bed) return  // 添加床位检查
-
-    const newItem: VitalData = {
-      id: data.length + 1,
-      timestamp: newData.timestamp || format(new Date(), "yyyy-MM-dd HH:mm"),
-      type: newData.type,
-      value: newData.value,
-      unit: newData.unit || "",
-      bed: newData.bed  // 添加床位
+  const handleAdd = async () => {
+    if (!newData.type || !newData.value || !newData.bed || !newData.timestamp) {
+      showAlert("错误", "请填写完整信息");
+      return;
     }
 
-    setData([...data, newItem])
-    setNewData({
-      timestamp: format(new Date(), "yyyy-MM-dd HH:mm"),
-      type: "",
-      value: "",
-      unit: "",
-      bed: ""  // 重置床位
-    })
-  }
+    try {
+      const dataToAdd = {
+        ...newData,
+        unit: UNITS_MAP[newData.type as keyof typeof UNITS_MAP] || '',
+        timestamp: new Date(newData.timestamp).toISOString()
+      };
+
+      const success = await addVitalData(dataToAdd);
+      if (success) {
+        showAlert("成功", "数据添加成功");
+        
+        // 重置表单
+        setNewData({
+          timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+          type: "",
+          value: "",
+          unit: "",
+          bed: ""
+        });
+        
+        // 重新加载数据
+        await handleSearch();
+      } else {
+        showAlert("错误", "添加数据失败");
+      }
+    } catch (error) {
+      console.error('添加数据失败:', error);
+      showAlert("错误", "添加数据失败");
+    }
+  };
 
   // 删除单条数据
-  const handleDelete = (id: number) => {
-    setData(data.filter(item => item.id !== id))
-    setSelectedItems(selectedItems.filter(itemId => itemId !== id))
-  }
+  const handleDelete = async (id: string) => {
+    try {
+      const success = await deleteVitalData([id]);
+      if (success) {
+        setData(data.filter(item => item.id !== id));
+        setSelectedItems(selectedItems.filter(itemId => itemId !== id));
+        showAlert("成功", "数据删除成功");
+      } else {
+        showAlert("错误", "删除数据失败");
+      }
+    } catch (error) {
+      console.error('删除数据失败:', error);
+      showAlert("错误", "删除数据失败");
+    }
+  };
 
   // 添加确认对话框状态
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // 修改删除选中数据的函数
-  const handleDeleteSelected = () => {
-    setData(data.filter(item => !selectedItems.includes(item.id)))
-    setSelectedItems([])
-    setIsDeleteDialogOpen(false) // 关闭对话框
-  }
+  const handleDeleteSelected = async () => {
+    try {
+      const success = await deleteVitalData(selectedItems);
+      if (success) {
+        setData(data.filter(item => !selectedItems.includes(item.id)));
+        setSelectedItems([]);
+        setIsDeleteDialogOpen(false);
+        showAlert("成功", "批量删除成功");
+      } else {
+        showAlert("错误", "批量删除失败");
+      }
+    } catch (error) {
+      console.error('批量删除失败:', error);
+      showAlert("错误", "批量删除失败");
+    }
+  };
 
   // 修改导出数据函数
   const handleExport = () => {
@@ -195,7 +295,7 @@ export default function ShowDBPage() {
   }
 
   // 处理选中状态
-  const handleSelect = (id: number) => {
+  const handleSelect = (id: string) => {
     setSelectedItems(prev => 
       prev.includes(id) 
         ? prev.filter(itemId => itemId !== id)
@@ -217,19 +317,16 @@ export default function ShowDBPage() {
   // 添加页码输入状态
   const [pageInput, setPageInput] = useState("")
   
-  // 计算总页数
-  const totalPages = Math.ceil(data.length / itemsPerPage)
-
   // 处理页码跳转
   const handlePageJump = () => {
-    const pageNumber = parseInt(pageInput)
+    const pageNumber = parseInt(pageInput);
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber)
-      setPageInput("") // 清空输入
+      setCurrentPage(pageNumber);
+      setPageInput(""); // 清空输入
     } else {
-      showAlert("页码无效", `请输入1-${totalPages}之间的���码`);
+      showAlert("页码无效", `请输入1-${totalPages}之间的页码`);
     }
-  }
+  };
 
   // 处理页码输入
   const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +445,11 @@ export default function ShowDBPage() {
     }
   }
 
+  // 添加数据获取函数用于ChartPaint组件
+  const fetchData = async () => {
+    return data.filter(item => selectedItems.includes(item.id))
+  }
+
   return (
     <div className="min-h-screen">
       {/* 全局提示 */}
@@ -383,79 +485,72 @@ export default function ShowDBPage() {
         </div>
         <div className="p-6">
           <div className="max-w-6xl mx-auto">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <p>加载中...</p>
-              </div>
-            ) : data.length === 0 ? (
-              <div className="flex justify-center items-center h-32">
-                <p>暂无数据</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="text-3xl font-bold">历史数据</h1>
-                  <ModeToggle />
-                </div>
-                <FilterSection
-                  dataType={dataType}
-                  setDataType={setDataType}
-                  startDate={startDate}
-                  setStartDate={setStartDate}
-                  endDate={endDate}
-                  setEndDate={setEndDate}
-                  handleSearch={handleSearch}
-                  handleClearFilters={handleClearFilters}
-                  handleShowExtremes={handleShowExtremes}
-                  isExtremeDialogOpen={isExtremeDialogOpen}
-                  setIsExtremeDialogOpen={setIsExtremeDialogOpen}
-                  selectedItems={selectedItems}
-                  extremeValues={extremeValues}
-                  showAlert={showAlert}
-                  bedFilter={bedFilter}
-                  setBedFilter={setBedFilter}
-                  handleShowChart={handleShowChart}
-                  isChartOpen={isChartOpen}
-                  setIsChartOpen={setIsChartOpen}
-                />
+            <FilterSection 
+              dataType={dataType}
+              setDataType={setDataType}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              handleSearch={handleSearch}
+              handleClearFilters={handleClearFilters}
+              handleShowExtremes={handleShowExtremes}
+              isExtremeDialogOpen={isExtremeDialogOpen}
+              setIsExtremeDialogOpen={setIsExtremeDialogOpen}
+              selectedItems={selectedItems}
+              extremeValues={extremeValues}
+              showAlert={showAlert}
+              bedFilter={bedFilter}
+              setBedFilter={setBedFilter}
+              handleShowChart={handleShowChart}
+              isChartOpen={isChartOpen}
+              setIsChartOpen={setIsChartOpen}
+              fetchData={fetchData}
+              loading={isLoading}
+            />
 
-                <DataTable
-                  data={data}
-                  currentPageData={getCurrentPageData()} // 新增此行
-                  selectedItems={selectedItems}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  totalPages={totalPages}
-                  pageInput={pageInput}
-                  newData={newData}
-                  isDeleteDialogOpen={isDeleteDialogOpen}
-                  handleSelect={handleSelect}
-                  handleSelectAll={handleSelectAll}
-                  handleDelete={handleDelete}
-                  handleAdd={handleAdd}
-                  setNewData={setNewData}
-                  setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                  handleDeleteSelected={handleDeleteSelected}
-                  handleExport={handleExport}
-                  handlePageInputChange={handlePageInputChange}
-                  handlePageInputKeyDown={handlePageInputKeyDown}
-                  handlePageJump={handlePageJump}
-                  handlePrevPage={handlePrevPage}
-                  handleNextPage={handleNextPage}
-                  showAlert={showAlert}
-                  handleShowChart={handleShowChart} // 添加这一行
-                />
-              </>
+            <DataTable
+              data={getCurrentPageData()}
+              selectedItems={selectedItems}
+              setSelectedItems={setSelectedItems}  // 添加这行
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              handleDelete={handleDelete}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalRecords={totalRecords} // 添加此行
+              handleNextPage={handleNextPage}
+              handlePrevPage={handlePrevPage}
+              pageInput={pageInput}
+              handlePageInputChange={handlePageInputChange}
+              handlePageInputKeyDown={handlePageInputKeyDown}
+              handlePageJump={handlePageJump}
+              handleExport={handleExport}
+              handleShowExtremes={handleShowExtremes}
+              handleShowChart={handleShowChart}
+              loading={isLoading}
+              itemsPerPage={itemsPerPage}
+              showAlert={showAlert}
+              isDeleteDialogOpen={isDeleteDialogOpen}
+              setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+              handleDeleteSelected={handleDeleteSelected}
+              newData={newData}
+              setNewData={setNewData}
+              handleAdd={handleAdd}
+              hasNextPage={hasNextPage}
+            />
+
+            {isChartOpen && (
+              <ChartPaint
+                isOpen={isChartOpen}
+                onClose={() => setIsChartOpen(false)}
+                data={data.filter(item => selectedItems.includes(item.id))}
+                fetchData={fetchData}
+              />
             )}
           </div>
         </div>
       </div>
-      {/* 图表组件 */}
-      <ChartPaint
-        isOpen={isChartOpen}
-        onClose={() => setIsChartOpen(false)}
-        data={data.filter(item => selectedItems.includes(item.id))}
-      />
     </div>
   )
 }

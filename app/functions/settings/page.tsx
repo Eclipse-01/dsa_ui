@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/sidebar-app"
 import { DatabaseConfig } from "./components/DatabaseConfig"
 import { AppSettings } from "./components/AppSettings"
 import { DatabaseCLI } from "./components/DatabaseCLI"
+import { Function } from "./components/Function"
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,7 @@ export default function SettingsPage() {
 
             <div className="space-y-6">
               <AppSettings />
+              <Function />
               <DatabaseConfig />
               <DatabaseCLI />
             </div>

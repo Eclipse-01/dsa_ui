@@ -1,124 +1,148 @@
 "use client"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { useState, useEffect } from "react"
-import { useTheme } from "next-themes"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-const SETTINGS_CHANGED_EVENT = 'settingsChanged';
+import { ModeToggle } from "@/components/theme-toggle"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function AppSettings() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const [settings, setSettings] = useState({
-    autoAlert: false,
-    alertThreshold: 80,
-    chartAnimation: true, // 新增图表动画设置
-    showMiniCharts: true  // 新增小图表显示控制
-  })
+  const [autoAlert, setAutoAlert] = useState(true)
+  const [chartAnimation, setChartAnimation] = useState(true)
+  const [showMiniCharts, setShowMiniCharts] = useState(true)
+  const [fontFamily, setFontFamily] = useState("system-ui")
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  // 加载设置
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings')
     if (savedSettings) {
-      const parsed = JSON.parse(savedSettings)
-      setSettings(prev => ({
-        ...prev,
-        ...parsed
-      }))
+      const settings = JSON.parse(savedSettings)
+      setAutoAlert(settings.autoAlert ?? true)
+      setChartAnimation(settings.chartAnimation ?? true)
+      setShowMiniCharts(settings.showMiniCharts ?? true)
+      setFontFamily(settings.fontFamily ?? "system-ui")
     }
   }, [])
 
-  const handleSettingChange = (key: string, value: any) => {
-    const newSettings = { ...settings, [key]: value }
-    setSettings(newSettings)
-    localStorage.setItem('app_settings', JSON.stringify(newSettings))
+  // 保存设置
+  const saveSettings = (settings: Record<string, any>) => {
+    const savedSettings = localStorage.getItem('app_settings')
+    const existingSettings = savedSettings ? JSON.parse(savedSettings) : {}
+    const updatedSettings = { ...existingSettings, ...settings }
+    localStorage.setItem('app_settings', JSON.stringify(updatedSettings))
+    window.dispatchEvent(
+      new CustomEvent('settingsChanged', { detail: { settings: updatedSettings } })
+    )
+  }
+
+  const handleFontChange = (value: string) => {
+    setFontFamily(value)
+    document.documentElement.style.setProperty('--font-family', value)
+    // 强制触发重新渲染
+    document.body.style.fontFamily = value
+    saveSettings({ fontFamily: value })
     
-    // 发出设置变更事件
-    const event = new CustomEvent(SETTINGS_CHANGED_EVENT, {
-      detail: { settings: newSettings }
-    });
-    window.dispatchEvent(event);
+    // 派发自定义事件通知字体变化
+    window.dispatchEvent(
+      new CustomEvent('fontChanged', { 
+        detail: { fontFamily: value }
+      })
+    )
   }
 
   return (
     <Card>
-      <CardHeader className="text-lg font-semibold">
-        界面设置
+      <CardHeader>
+        <CardTitle>界面设置</CardTitle>
+        <CardDescription>
+          配置应用程序的显示和交互选项
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {mounted && ( // 只在客户端渲染主题选择器
-          <div className="space-y-2">
-            <Label>模式</Label>
-            <Select value={theme || "system"} onValueChange={setTheme}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="选择主题模式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>主题模式</SelectLabel>
-                  <SelectItem value="light">浅色</SelectItem>
-                  <SelectItem value="dark">深色</SelectItem>
-                  <SelectItem value="system">跟随系统</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>显示模式</Label>
+            <div className="text-sm text-muted-foreground">
+              切换浅色/深色主题显示模式
+            </div>
           </div>
-        )}
+          <ModeToggle />
+        </div>
 
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <Label htmlFor="autoAlert">自动报警</Label>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-0.5">
+            <Label htmlFor="auto-alert">自动报警</Label>
+            <div className="text-sm text-muted-foreground">
               启用后将自动监测并显示异常生命体征警报
-            </p>
+            </div>
           </div>
-          <Switch 
-            id="autoAlert"
-            checked={settings.autoAlert}
-            onCheckedChange={(checked) => handleSettingChange('autoAlert', checked)}
+          <Switch
+            id="auto-alert"
+            checked={autoAlert}
+            onCheckedChange={(checked) => {
+              setAutoAlert(checked)
+              saveSettings({ autoAlert: checked })
+            }}
           />
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <Label htmlFor="chartAnimation">图表动画</Label>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-0.5">
+            <Label htmlFor="chart-animation">图表动画</Label>
+            <div className="text-sm text-muted-foreground">
               启用后图表将显示平滑的动画效果
-            </p>
+            </div>
           </div>
-          <Switch 
-            id="chartAnimation"
-            checked={settings.chartAnimation}
-            onCheckedChange={(checked) => handleSettingChange('chartAnimation', checked)}
+          <Switch
+            id="chart-animation"
+            checked={chartAnimation}
+            onCheckedChange={(checked) => {
+              setChartAnimation(checked)
+              saveSettings({ chartAnimation: checked })
+            }}
           />
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <Label htmlFor="showMiniCharts">监测卡片图表</Label>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-0.5">
+            <Label htmlFor="mini-charts">监测卡片图表</Label>
+            <div className="text-sm text-muted-foreground">
               在生命体征卡片中显示实时趋势图表
-            </p>
+            </div>
           </div>
-          <Switch 
-            id="showMiniCharts"
-            checked={settings.showMiniCharts}
-            onCheckedChange={(checked) => handleSettingChange('showMiniCharts', checked)}
+          <Switch
+            id="mini-charts"
+            checked={showMiniCharts}
+            onCheckedChange={(checked) => {
+              setShowMiniCharts(checked)
+              saveSettings({ showMiniCharts: checked })
+            }}
           />
         </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>字体设置</Label>
+            <div className="text-sm text-muted-foreground">
+              选择界面显示字体
+            </div>
+          </div>
+          <Select 
+            value={fontFamily}
+            onValueChange={handleFontChange}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="选择字体" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="system-ui">系统默认</SelectItem>
+              <SelectItem value="MiSans">MiSans</SelectItem>
+              <SelectItem value="Arial">Arial</SelectItem>
+              <SelectItem value="PingFang SC">苹方</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
       </CardContent>
     </Card>
   )

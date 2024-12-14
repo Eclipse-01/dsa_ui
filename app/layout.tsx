@@ -3,6 +3,18 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeInitializer } from "@/components/theme-initializer";
+import { FontInitializer } from "@/components/font-initializer";
+
+const miSans = localFont({
+  src: [
+    {
+      path: './fonts/MiSans-Light.woff',  // 使用更细的字重
+      weight: '300',  // 调整为 Light 字重
+      style: 'normal',
+    }
+  ],
+  variable: '--font-misans',
+});
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,7 +41,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${miSans.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -38,6 +50,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ThemeInitializer />
+          <FontInitializer />
           {children}
         </ThemeProvider>
       </body>

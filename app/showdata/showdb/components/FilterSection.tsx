@@ -21,7 +21,7 @@ interface FilterSectionProps {
   handleShowExtremes: () => void
   isExtremeDialogOpen: boolean
   setIsExtremeDialogOpen: (open: boolean) => void
-  selectedItems: string[]; // 修改此行
+  selectedItems: string[]; // 改为string[]
   extremeValues: { 
     max: { value: string; record: any | null };
     min: { value: string; record: any | null };

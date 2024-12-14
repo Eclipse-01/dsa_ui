@@ -5,65 +5,101 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { VitalData } from "@/app/data/vitalData"
+import { VitalData, UNITS_MAP } from "@/app/data/vitalData"
+import { format } from "date-fns"
 
 interface DataTableProps {
   data: VitalData[]
   selectedItems: string[]
+  onSelect: (id: string) => void
+  onSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handleDelete: (id: string) => Promise<void>
   currentPage: number
-  itemsPerPage: number
   totalPages: number
-  pageInput: string
-  newData: Partial<VitalData>
-  isDeleteDialogOpen: boolean
-  handleSelect: (id: string) => void
-  handleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void
-  handleDelete: (id: string) => void
-  handleAdd: () => void
-  setNewData: (data: Partial<VitalData>) => void
-  setIsDeleteDialogOpen: (open: boolean) => void
-  handleDeleteSelected: () => void
-  handleExport: () => void
+  totalRecords: number // 新增：总记录数
+  handleNextPage: () => void
+  handlePrevPage: () => void
+  pageInput: string // 添加这个属性
   handlePageInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handlePageInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
   handlePageJump: () => void
-  handlePrevPage: () => void
-  handleNextPage: () => void
-  showAlert: (title: string, description: string) => void
-  currentPageData: VitalData[]
+  handleExport: () => void
+  handleShowExtremes: () => void
   handleShowChart: () => void
-  fetchData: () => void
   loading: boolean
+  itemsPerPage: number
+  showAlert: (title: string, description: string) => void
+  isDeleteDialogOpen: boolean
+  setIsDeleteDialogOpen: (open: boolean) => void
+  handleDeleteSelected: () => Promise<void>
+  newData: Partial<VitalData>
+  setNewData: (data: Partial<VitalData>) => void
+  handleAdd: () => Promise<void>
+  hasNextPage: boolean;
+  setSelectedItems: (items: string[]) => void  // 添加这个属性
 }
 
 export function DataTable({
   data,
   selectedItems,
-  currentPage,
-  itemsPerPage,
-  totalPages,
-  pageInput,
-  newData,
-  isDeleteDialogOpen,
-  handleSelect,
-  handleSelectAll,
+  onSelect,
+  onSelectAll,
   handleDelete,
-  handleAdd,
-  setNewData,
-  setIsDeleteDialogOpen,
-  handleDeleteSelected,
-  handleExport,
+  currentPage = 1,
+  totalPages = 1,
+  totalRecords = 0, // 设置默认值
+  handleNextPage,
+  handlePrevPage,
+  pageInput, // 确保包含这个参数
   handlePageInputChange,
   handlePageInputKeyDown,
   handlePageJump,
-  handlePrevPage,
-  handleNextPage,
-  showAlert,
-  currentPageData,
+  handleExport,
+  handleShowExtremes,
   handleShowChart,
-  fetchData,
-  loading
+  loading,
+  itemsPerPage = 10, // 确保 itemsPerPage 设置为 10
+  showAlert,
+  isDeleteDialogOpen,
+  setIsDeleteDialogOpen,
+  handleDeleteSelected,
+  newData,
+  setNewData,
+  handleAdd,
+  hasNextPage,
+  setSelectedItems,  // 添加这个参数
 }: DataTableProps) {
+  // 添加固定的页面大小常量
+  const PAGE_SIZE = 10;
+  
+  // 修改全选逻辑，只处理当前页面的数据
+  const currentPageData = data.slice(0, PAGE_SIZE);
+  const isAllSelected = currentPageData.length > 0 && 
+    currentPageData.every(item => selectedItems.includes(item.id));
+
+  // 修改全选处理函数
+  const handleSelectAllLocal = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentIds = currentPageData.map(item => item.id);
+    if (e.target.checked) {
+      // 合并当前页数据ID和已选择的其他页面数据ID
+      const newSelected = Array.from(new Set([...selectedItems, ...currentIds]));
+      setSelectedItems(newSelected);
+    } else {
+      // 仅移除当前页数据的ID
+      const newSelected = selectedItems.filter(id => !currentIds.includes(id));
+      setSelectedItems(newSelected);
+    }
+  };
+
+  // 修改显示范围的计算函数
+  const getDisplayRange = () => {
+    if (totalRecords === 0) return "暂无数据";
+    const start = ((currentPage - 1) * itemsPerPage) + 1;
+    const end = Math.min(currentPage * itemsPerPage, totalRecords);
+    console.log('Display range:', { start, end, total: totalRecords });
+    return `显示 ${start} - ${end} 条，共 ${totalRecords} 条`;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
@@ -78,6 +114,14 @@ export function DataTable({
                 <DialogTitle>添加新数据</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                <div>
+                  <label>时间</label>
+                  <Input 
+                    type="datetime-local"
+                    value={newData.timestamp}
+                    onChange={(e) => setNewData({...newData, timestamp: e.target.value})}
+                  />
+                </div>
                 <div>
                   <label>床位</label>
                   <Select onValueChange={(v) => setNewData({...newData, bed: v})}>
@@ -95,7 +139,12 @@ export function DataTable({
                 </div>
                 <div>
                   <label>数据类型</label>
-                  <Select onValueChange={(v) => setNewData({...newData, type: v})}>
+                  <Select 
+                    onValueChange={(v) => {
+                      const unit = UNITS_MAP[v as keyof typeof UNITS_MAP] || '';
+                      setNewData({...newData, type: v, unit})
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="选择数据类型" />
                     </SelectTrigger>
@@ -222,8 +271,8 @@ export function DataTable({
                       <input
                         type="checkbox"
                         className="rounded"
-                        checked={selectedItems.length === data.length && data.length > 0}
-                        onChange={handleSelectAll}
+                        checked={isAllSelected}
+                        onChange={handleSelectAllLocal}  // 使用新的本地处理函数
                         aria-label="Select all"
                       />
                     </TableHead>
@@ -236,82 +285,96 @@ export function DataTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentPageData.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        <input 
-                          type="checkbox" 
-                          className="rounded" 
-                          checked={selectedItems.includes(row.id)}
-                          onChange={() => handleSelect(row.id)}
-                          aria-label="Select row" 
-                        />
-                      </TableCell>
-                      <TableCell>{row.bed}</TableCell>
-                      <TableCell>{row.timestamp}</TableCell>
-                      <TableCell>{row.type}</TableCell>
-                      <TableCell>{row.value}</TableCell>
-                      <TableCell>{row.unit}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDelete(row.id)}
-                        >
-                          删除
-                        </Button>
+                  {currentPageData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        暂无数据
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    // 强制限制只显示前10条数据
+                    currentPageData.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <input 
+                            type="checkbox" 
+                            className="rounded" 
+                            checked={selectedItems.includes(row.id)}
+                            onChange={() => onSelect(row.id)}
+                            aria-label="Select row" 
+                          />
+                        </TableCell>
+                        <TableCell>{row.bed}</TableCell>
+                        <TableCell>{row.timestamp}</TableCell>
+                        <TableCell>{row.type}</TableCell>
+                        <TableCell>{row.value}</TableCell>
+                        <TableCell>{row.unit}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDelete(row.id)}
+                          >
+                            删除
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 space-y-4 sm:space-y-0">
               <div className="text-sm text-muted-foreground whitespace-nowrap">
-                显示 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, data.length)} 条，共 {data.length} 条
+                {loading ? (
+                  "加载中..."
+                ) : (
+                  <>
+                    {getDisplayRange()}
+                    {process.env.NODE_ENV === 'development' && (
+                      <span className="ml-2 text-xs opacity-50">
+                        (页码: {currentPage}/{totalPages}, 每页: {itemsPerPage})
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    if (currentPage === 1) {
-                      showAlert("已是第一页", "无法前往上一页");
-                      return;
-                    }
-                    handlePrevPage();
-                  }}
-                  className={currentPage === 1 ? "opacity-50" : ""}
+                  onClick={handlePrevPage}
+                  disabled={loading || currentPage <= 1}
+                  className={loading || currentPage <= 1 ? "opacity-50" : ""}
                 >
                   上一页
                 </Button>
                 <div className="flex flex-wrap items-center gap-1 flex-1 sm:flex-none justify-center">
-                  <span className="text-sm whitespace-nowrap">第 {currentPage}/{totalPages} 页</span>
+                  <span className="text-sm whitespace-nowrap">
+                    {loading ? "加载中..." : `第 ${currentPage}/${Math.max(1, totalPages)} 页`}
+                  </span>
                   <Input
                     className="w-16 text-center"
-                    value={pageInput}
+                    value={pageInput || ''}
                     onChange={handlePageInputChange}
                     onKeyDown={handlePageInputKeyDown}
                     placeholder="页码"
+                    disabled={loading}
                   />
                   <Button 
                     variant="outline"
                     onClick={handlePageJump}
-                    className={!pageInput ? "opacity-50" : ""}
+                    disabled={loading || !pageInput || Number(pageInput) > totalPages || Number(pageInput) < 1}
+                    className={loading || !pageInput || Number(pageInput) > totalPages || Number(pageInput) < 1 ? "opacity-50" : ""}
                   >
                     跳转
                   </Button>
                 </div>
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    if (currentPage * itemsPerPage >= data.length) {
-                      showAlert("已是最后一页", "无法前往下一页");
-                      return;
-                    }
-                    handleNextPage();
-                  }}
-                  className={currentPage * itemsPerPage >= data.length ? "opacity-50" : ""}
+                  onClick={handleNextPage}
+                  disabled={loading || !hasNextPage}
+                  className={loading || !hasNextPage ? "opacity-50" : ""}
                 >
                   下一页
                 </Button>

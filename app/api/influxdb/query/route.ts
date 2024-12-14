@@ -1,106 +1,73 @@
 import { NextResponse } from 'next/server'
+import { InfluxDB } from '@influxdata/influxdb-client'
 import { getInfluxDBConfig } from '@/config/influxdb'
-import { InfluxDB, FluxTableMetaData } from '@influxdata/influxdb-client'
 
-interface InfluxResult {
+interface InfluxDBRow {
   _time: string
-  _value: number
-  _field: string
+  _value: any
+  type: string
+  unit: string
   bed: string
+  result: string
+  table: number
+  _field: string
+  _measurement: string
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { dataType, startDate, endDate, bedFilter, page = 1, pageSize = 10 } = await request.json()
+    const { startDate, endDate, dataType, bedFilter, page, pageSize } = await req.json()
     const config = getInfluxDBConfig()
     const influxDB = new InfluxDB({ url: config.url, token: config.token })
     const queryApi = influxDB.getQueryApi(config.org)
 
-    // 构建 Flux 查询语句
+    // 构建基础查询
     let fluxQuery = `from(bucket: "${config.bucket}")
-      |> range(start: ${startDate || '-30d'}, stop: ${endDate || 'now()'})
-      |> filter(fn: (r) => r._measurement == "vital_signs")`
+      |> range(start: ${startDate || '-30d'}, stop: ${endDate || 'now()'})`
 
-    // 添加条件过滤
-    if (dataType && dataType !== 'all') {
-      fluxQuery += `\n  |> filter(fn: (r) => r._field == "${dataType}")`
+    // 添加过滤条件
+    if (dataType) {
+      fluxQuery += `|> filter(fn: (r) => r["type"] == "${dataType}")`
     }
-    if (bedFilter && bedFilter !== 'all') {
-      fluxQuery += `\n  |> filter(fn: (r) => r.bed == "${bedFilter}")`
+    if (bedFilter) {
+      fluxQuery += `|> filter(fn: (r) => r["bed"] == "${bedFilter}")`
     }
 
-    // 添加排序和分页
+    // 计算总数
+    const countQuery = `${fluxQuery}
+      |> count()`
+    
+    // 修改计数查询的类型断言
+    const total = await queryApi.collectRows<{_value: number}>(countQuery)
+    const totalCount = total[0]?._value || 0
+
+    // 添加分页
     fluxQuery += `
       |> sort(columns: ["_time"], desc: true)
       |> limit(n: ${pageSize}, offset: ${(page - 1) * pageSize})`
 
-    // 执行查询并获取结果
-    const result: any[] = []
+    const rows = await queryApi.collectRows<InfluxDBRow>(fluxQuery)
     
-    // 修复查询执行
-    await new Promise<void>((resolve, reject) => {
-      queryApi.queryRows(fluxQuery, {
-        next: (row: string[], tableMeta: FluxTableMetaData) => {
-          const o = tableMeta.toObject(row) as InfluxResult
-          result.push({
-            id: `${o._time}-${o.bed}-${o._field}`,
-            timestamp: o._time,
-            bed: o.bed,
-            type: o._field,
-            value: o._value.toString(),
-            unit: getUnit(o._field)
-          })
-        },
-        error: (error: Error) => reject(error),
-        complete: () => resolve()
-      })
-    })
+    // 转换数据格式
+    const data = rows.map(row => ({
+      id: row._time,
+      timestamp: new Date(row._time).toISOString(),
+      type: row.type,
+      value: row._value.toString(),
+      unit: row.unit,
+      bed: row.bed
+    }))
 
-    // 获取总数量
-    const countResult = await new Promise<any[]>((resolve, reject) => {
-      const counts: any[] = []
-      const countQuery = fluxQuery.split('|> limit')[0] + '|> count()'
-      
-      queryApi.queryRows(countQuery, {
-        next: (row: string[], tableMeta: FluxTableMetaData) => {
-          counts.push(tableMeta.toObject(row))
-        },
-        error: (error: Error) => reject(error),
-        complete: () => resolve(counts)
-      })
-    })
-
-    const total = countResult[0]?._value || 0
-
-    return NextResponse.json({
-      data: result,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize)
+    return NextResponse.json({ 
+      data, 
+      total: totalCount
     })
 
   } catch (error) {
-    console.error('查询失败:', error)
+    console.error('Query error:', error)
     return NextResponse.json(
-      { error: '查询数据失败' },
+      { error: 'Failed to query data' },
       { status: 500 }
     )
   }
-}
-
-// 根据数据类型获取单位
-function getUnit(type: string): string {
-  const units: Record<string, string> = {
-    heartRate: 'BPM',
-    bloodO2: '%',
-    systolic: 'mmHg',
-    diastolic: 'mmHg',
-    temperature: '°C',
-    respirationRate: '次/分',
-    bloodGlucose: 'mmol/L',
-    heartRateVariability: 'ms',
-    stressLevel: '/5'
-  }
-  return units[type] || ''
 }

@@ -75,6 +75,7 @@ export default function DashboardPage() {
 
   const [alerts, setAlerts] = useState<AlertMessage[]>([])
   const [autoAlertEnabled, setAutoAlertEnabled] = useState(false);
+  const [enableDataSync, setEnableDataSync] = useState(true)
 
   // 添加状态来保存传感器配置
   const [sensorConfigs, setSensorConfigs] = useState<Record<string, {
@@ -218,8 +219,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings');
     if (savedSettings) {
-      const { autoAlert } = JSON.parse(savedSettings);
+      const { autoAlert, enableDataSync } = JSON.parse(savedSettings);
       setAutoAlertEnabled(autoAlert);
+      setEnableDataSync(enableDataSync); // 新增此行
     }
   }, []);
 
@@ -375,37 +377,57 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [selectedBed, sensorConfigs, autoAlertEnabled]);
 
-  // 修改 syncToInfluxDB 函数使用 influxClient
+  // 添加数据类型和单位的映射
+  const VITAL_TYPE_MAP = {
+    heartRate: { type: '心率', unit: 'BPM' },
+    bloodO2: { type: '血氧饱和度', unit: '%' },
+    systolic: { type: '血压', unit: 'mmHg' },
+    diastolic: { type: '血压', unit: 'mmHg' },
+    temperature: { type: '体温', unit: '°C' },
+    respirationRate: { type: '呼吸率', unit: '次/分' },
+    bloodGlucose: { type: '血糖', unit: 'mmol/L' },
+    heartRateVariability: { type: '心率变异性', unit: 'ms' },
+    stressLevel: { type: '压力水平', unit: '/5' }
+  } as const;
+
+  // 修改 syncToInfluxDB 函数
   const syncToInfluxDB = async (bed: string, data: VitalData) => {
-    if (!writeApi) return;
+    if (!writeApi || !enableDataSync) return;
     
     try {
-      const point = new Point('vital_signs')
-        .tag('bed', bed)
-        .timestamp(new Date())
+      // 遍历每个生命体征指标，分别写入数据点
+      const writeDataPoint = (value: number, field: keyof typeof VITAL_TYPE_MAP) => {
+        const { type, unit } = VITAL_TYPE_MAP[field];
+        const point = new Point('vital_signs')
+          .tag('bed', bed)
+          .tag('type', type)
+          .tag('unit', unit)
+          .floatField('value', value)
+          .timestamp(new Date());
+        
+        writeApi.writePoint(point);
+      };
 
-      if (data.heartRate) point.floatField('heartRate', data.heartRate)
-      if (data.bloodO2) point.floatField('bloodO2', data.bloodO2)
+      if (data.heartRate) writeDataPoint(data.heartRate, 'heartRate');
+      if (data.bloodO2) writeDataPoint(data.bloodO2, 'bloodO2');
       if (data.bloodPressure) {
-        const [systolic, diastolic] = data.bloodPressure.split('/').map(Number)
-        point.floatField('systolic', systolic)
-        point.floatField('diastolic', diastolic)
+        const [systolic, diastolic] = data.bloodPressure.split('/').map(Number);
+        writeDataPoint(systolic, 'systolic');
+        writeDataPoint(diastolic, 'diastolic');
       }
-      if (data.temperature) point.floatField('temperature', data.temperature)
-      if (data.respirationRate) point.floatField('respirationRate', data.respirationRate)
-      if (data.bloodGlucose) point.floatField('bloodGlucose', data.bloodGlucose)
-      if (data.heartRateVariability) point.floatField('heartRateVariability', data.heartRateVariability)
-      if (data.stressLevel) point.floatField('stressLevel', data.stressLevel)
-      
-      await writeApi.writePoint(point)
-      await writeApi.flush()
-      
-      console.log(`成功写入数据: 床位=${bed}`, data)
+      if (data.temperature) writeDataPoint(data.temperature, 'temperature');
+      if (data.respirationRate) writeDataPoint(data.respirationRate, 'respirationRate');
+      if (data.bloodGlucose) writeDataPoint(data.bloodGlucose, 'bloodGlucose');
+      if (data.heartRateVariability) writeDataPoint(data.heartRateVariability, 'heartRateVariability');
+      if (data.stressLevel) writeDataPoint(data.stressLevel, 'stressLevel');
+
+      await writeApi.flush();
+      console.log(`成功写入数据: 床位=${bed}`, data);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`写入数据失败: 床位=${bed}`, errorMessage)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`写入数据失败: 床位=${bed}`, errorMessage);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen">

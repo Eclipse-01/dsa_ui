@@ -23,7 +23,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { executeFluxQuery, getPredefinedQueries } from '@/lib/influxdb'
-import { InfluxDBService } from "@/src/services/influxdb"
+import { InfluxDBService, DeleteFilters, ExistsFilter } from "@/src/services/influxdb"
 
 interface CommandHistory {
   command: string
@@ -92,6 +92,11 @@ export function DatabaseCLI() {
       icon: <Database className="mr-2 h-4 w-4" />,
       text: "DELETE TEST_DATA",
       description: "删除测试数据"
+    },
+    {
+      icon: <Database className="mr-2 h-4 w-4" />,
+      text: "CLEAR ALL DATA",
+      description: "清除所有数据（谨慎使用）"
     }
   ]
 
@@ -240,6 +245,11 @@ const executeInfluxCommand = async (command: string): Promise<string> => {
       return "测试数据删除成功"
     }
 
+    if (command.toLowerCase() === "clear all data") {
+      await clearAllData(config.bucket)
+      return "所有数据已清除"
+    }
+
     if (command.toLowerCase() === "help") {
       return `可用命令：
 - SHOW DATABASES: 显示所有数据库
@@ -249,6 +259,7 @@ const executeInfluxCommand = async (command: string): Promise<string> => {
 - SELECT ...: 执行查询（将自动转换为Flux查询）
 - INSERT TEST_DATA: 插入测试数据
 - DELETE TEST_DATA: 删除测试数据
+- CLEAR ALL DATA: 清除所有数据（谨慎使用）
 - HELP: 显示本帮助信息`
     }
 
@@ -357,16 +368,70 @@ const deleteTestData = async (bucket: string): Promise<void> => {
   )
 
   try {
-    const result = await influxDB.deleteData({
+    const deleteFilters: DeleteFilters = {
       _measurement: "vital_signs",
-      bed: "-1"
-    });
+      bed: "-1",
+      id: { $exists: true } as ExistsFilter
+    };
+
+    const result = await influxDB.deleteData(deleteFilters);
 
     if (!result) {
       throw new Error('删除操作失败');
     }
   } catch (error) {
     console.error('删除测试数据失败:', error);
+    throw error;
+  }
+}
+
+// 修改删除单条数据的方法
+const deleteDataById = async (bucket: string, id: string, timestamp: string): Promise<void> => {
+  const config = JSON.parse(localStorage.getItem('influxdb_config') || '{}')
+  const influxDB = new InfluxDBService(
+    config.url,
+    config.token,
+    config.org,
+    bucket
+  )
+
+  try {
+    // 使用 id 和 timestamp 精确定位要删除的数据
+    const result = await influxDB.deleteData({
+      _measurement: "vital_signs",
+      id: id,
+      _time: timestamp
+    });
+
+    if (!result) {
+      throw new Error('删除操作失败');
+    }
+  } catch (error) {
+    console.error('删除数据失败:', error);
+    throw error;
+  }
+}
+
+const clearAllData = async (bucket: string): Promise<void> => {
+  const config = JSON.parse(localStorage.getItem('influxdb_config') || '{}')
+  const influxDB = new InfluxDBService(
+    config.url,
+    config.token,
+    config.org,
+    bucket
+  )
+
+  try {
+    // 删除所有生命体征数据
+    const result = await influxDB.deleteData({
+      _measurement: "vital_signs"
+    });
+
+    if (!result) {
+      throw new Error('清除操作失败');
+    }
+  } catch (error) {
+    console.error('清除所有数据失败:', error);
     throw error;
   }
 }

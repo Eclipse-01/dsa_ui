@@ -1,3 +1,4 @@
+"use client"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Heart, Stethoscope, Activity, Thermometer, Wind, Droplet, HeartPulse, AlertTriangle } from "lucide-react"
 import { VitalChart, BloodPressureChart, VitalHistoryData } from "./VitalCharts"
@@ -44,18 +45,21 @@ export const VitalCard = ({
   isConnected = true,
 }: VitalCardProps) => {
   const [showCharts, setShowCharts] = useState(true);
+  const [showUninstalled, setShowUninstalled] = useState(true);
   const Icon = IconMap[icon];
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings');
     if (savedSettings) {
-      const { showMiniCharts } = JSON.parse(savedSettings);
+      const { showMiniCharts, showUninstalledSensors } = JSON.parse(savedSettings);
       setShowCharts(showMiniCharts);
+      setShowUninstalled(showUninstalledSensors);
     }
 
     const handleSettingsChange = (event: CustomEvent) => {
-      const { showMiniCharts } = event.detail.settings;
+      const { showMiniCharts, showUninstalledSensors } = event.detail.settings;
       setShowCharts(showMiniCharts);
+      setShowUninstalled(showUninstalledSensors);
     };
 
     window.addEventListener('settingsChanged', handleSettingsChange as EventListener);
@@ -63,6 +67,10 @@ export const VitalCard = ({
       window.removeEventListener('settingsChanged', handleSettingsChange as EventListener);
     };
   }, []);
+
+  if (!sensorId && !showUninstalled) {
+    return null;
+  }
 
   if (!sensorId) {
     return (
