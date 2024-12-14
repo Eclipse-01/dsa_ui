@@ -9,15 +9,14 @@ export default function DatabaseArticle() {
           <CardContent className="pt-6">
             <ul className="list-disc pl-6 space-y-3">
               <li>本地数据库配置:
-                <pre className="bg-gray-100 p-2 mt-2 rounded">
+                <pre className="bg-muted p-2 mt-2 rounded">
 {`const databaseConfig = {
   dbName: "localdb",
   tables: {
     users: "users",
     settings: "settings"
   }
-}`}
-                </pre>
+}`}</pre>
               </li>
               <li>初始化配置:
                 <ul className="list-circle pl-6 mt-2 space-y-2">
@@ -34,15 +33,14 @@ export default function DatabaseArticle() {
                 </ul>
               </li>
               <li>InfluxDB 连接配置:
-                <pre className="bg-gray-100 p-2 mt-2 rounded">
+                <pre className="bg-muted p-2 mt-2 rounded">
 {`const influxConfig = {
   url: 'http://localhost:8086',
   token: 'your-token',
   org: 'your-org',
   bucket: 'your-bucket',
   precision: 'ms'
-}`}
-                </pre>
+}`}</pre>
               </li>
               <li>初始化配置:
                 <ul className="list-circle pl-6 mt-2 space-y-2">
@@ -95,13 +93,12 @@ export default function DatabaseArticle() {
             </div>
             <div>
               <h3 className="font-medium mb-2">数据写入格式</h3>
-              <pre className="bg-gray-100 p-2 rounded">
+              <pre className="bg-muted p-2 rounded">
 {`// 行协议格式
 measurement,tag_key=tag_value field_key=field_value timestamp
 
 // 示例
-cpu,host=server01,region=us-west usage_idle=98.2 1434055562000000000`}
-              </pre>
+cpu,host=server01,region=us-west usage_idle=98.2 1434055562000000000`}</pre>
             </div>
           </CardContent>
         </Card>
@@ -114,7 +111,7 @@ cpu,host=server01,region=us-west usage_idle=98.2 1434055562000000000`}
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium mb-2">基本操作示例</h3>
-                <pre className="bg-gray-100 p-2 rounded">
+                <pre className="bg-muted p-2 rounded">
 {`// 查询数据
 db.get('users')
   .find({ active: true })
@@ -123,8 +120,7 @@ db.get('users')
 // 更新数据
 db.get('settings')
   .update({ theme: 'dark' })
-  .write()`}
-                </pre>
+  .write()`}</pre>
               </div>
               <div>
                 <h3 className="font-medium mb-2">常用操作</h3>
@@ -136,7 +132,7 @@ db.get('settings')
               </div>
               <div>
                 <h3 className="font-medium mb-2">Flux 查询示例</h3>
-                <pre className="bg-gray-100 p-2 rounded">
+                <pre className="bg-muted p-2 rounded">
 {`// 基础查询
 from(bucket: "your-bucket")
   |> range(start: -1h)
@@ -147,8 +143,7 @@ from(bucket: "your-bucket")
 from(bucket: "your-bucket")
   |> range(start: -1d)
   |> filter(fn: (r) => r._measurement == "temperature")
-  |> mean()`}
-                </pre>
+  |> mean()`}</pre>
               </div>
               <div>
                 <h3 className="font-medium mb-2">常用操作函数</h3>

@@ -9,16 +9,16 @@ import { VitalData } from "@/app/data/vitalData"
 
 interface DataTableProps {
   data: VitalData[]
-  selectedItems: number[]
+  selectedItems: string[]
   currentPage: number
   itemsPerPage: number
   totalPages: number
   pageInput: string
   newData: Partial<VitalData>
   isDeleteDialogOpen: boolean
-  handleSelect: (id: number) => void
+  handleSelect: (id: string) => void
   handleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void
-  handleDelete: (id: number) => void
+  handleDelete: (id: string) => void
   handleAdd: () => void
   setNewData: (data: Partial<VitalData>) => void
   setIsDeleteDialogOpen: (open: boolean) => void
@@ -30,8 +30,10 @@ interface DataTableProps {
   handlePrevPage: () => void
   handleNextPage: () => void
   showAlert: (title: string, description: string) => void
-  currentPageData: VitalData[] // 新增此行
-  handleShowChart: () => void // 添加这一行
+  currentPageData: VitalData[]
+  handleShowChart: () => void
+  fetchData: () => void
+  loading: boolean
 }
 
 export function DataTable({
@@ -58,7 +60,9 @@ export function DataTable({
   handleNextPage,
   showAlert,
   currentPageData,
-  handleShowChart, // 添加这一行
+  handleShowChart,
+  fetchData,
+  loading
 }: DataTableProps) {
   return (
     <Card>
@@ -198,114 +202,123 @@ export function DataTable({
             >
               图表展示
             </Button>
+            {/* 删除查询按钮 */}
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <input
-                    type="checkbox"
-                    className="rounded"
-                    checked={selectedItems.length === data.length && data.length > 0}
-                    onChange={handleSelectAll}
-                    aria-label="Select all"
-                  />
-                </TableHead>
-                <TableHead>床位</TableHead>  {/* 新增 */}
-                <TableHead>时间</TableHead>
-                <TableHead>数据类型</TableHead>
-                <TableHead>数值</TableHead>
-                <TableHead>单位</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentPageData.map((row) => ( // 使用 currentPageData 替代 getCurrentPageData()
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <input 
-                      type="checkbox" 
-                      className="rounded" 
-                      checked={selectedItems.includes(row.id)}
-                      onChange={() => handleSelect(row.id)}
-                      aria-label="Select row" 
-                    />
-                  </TableCell>
-                  <TableCell>{row.bed}</TableCell>  {/* 新增 */}
-                  <TableCell>{row.timestamp}</TableCell>
-                  <TableCell>{row.type}</TableCell>
-                  <TableCell>{row.value}</TableCell>
-                  <TableCell>{row.unit}</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDelete(row.id)}
-                    >
-                      删除
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 space-y-4 sm:space-y-0">
-          <div className="text-sm text-muted-foreground whitespace-nowrap">
-            显示 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, data.length)} 条，共 {data.length} 条
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <p>加载中...</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                if (currentPage === 1) {
-                  showAlert("已是第一页", "无法前往上一页");
-                  return;
-                }
-                handlePrevPage();
-              }}
-              className={currentPage === 1 ? "opacity-50" : ""}
-            >
-              上一页
-            </Button>
-            <div className="flex flex-wrap items-center gap-1 flex-1 sm:flex-none justify-center">
-              <span className="text-sm whitespace-nowrap">第 {currentPage}/{totalPages} 页</span>
-              <Input
-                className="w-16 text-center"
-                value={pageInput}
-                onChange={handlePageInputChange}
-                onKeyDown={handlePageInputKeyDown}
-                placeholder="页码"
-              />
-              <Button 
-                variant="outline"
-                onClick={handlePageJump}
-                className={!pageInput ? "opacity-50" : ""}
-              >
-                跳转
-              </Button>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={selectedItems.length === data.length && data.length > 0}
+                        onChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <TableHead>床位</TableHead>
+                    <TableHead>时间</TableHead>
+                    <TableHead>数据类型</TableHead>
+                    <TableHead>数值</TableHead>
+                    <TableHead>单位</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentPageData.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <input 
+                          type="checkbox" 
+                          className="rounded" 
+                          checked={selectedItems.includes(row.id)}
+                          onChange={() => handleSelect(row.id)}
+                          aria-label="Select row" 
+                        />
+                      </TableCell>
+                      <TableCell>{row.bed}</TableCell>
+                      <TableCell>{row.timestamp}</TableCell>
+                      <TableCell>{row.type}</TableCell>
+                      <TableCell>{row.value}</TableCell>
+                      <TableCell>{row.unit}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDelete(row.id)}
+                        >
+                          删除
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                if (currentPage * itemsPerPage >= data.length) {
-                  showAlert("已是最后一页", "无法前往下一页");
-                  return;
-                }
-                handleNextPage();
-              }}
-              className={currentPage * itemsPerPage >= data.length ? "opacity-50" : ""}
-            >
-              下一页
-            </Button>
-          </div>
-        </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 space-y-4 sm:space-y-0">
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
+                显示 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, data.length)} 条，共 {data.length} 条
+              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    if (currentPage === 1) {
+                      showAlert("已是第一页", "无法前往上一页");
+                      return;
+                    }
+                    handlePrevPage();
+                  }}
+                  className={currentPage === 1 ? "opacity-50" : ""}
+                >
+                  上一页
+                </Button>
+                <div className="flex flex-wrap items-center gap-1 flex-1 sm:flex-none justify-center">
+                  <span className="text-sm whitespace-nowrap">第 {currentPage}/{totalPages} 页</span>
+                  <Input
+                    className="w-16 text-center"
+                    value={pageInput}
+                    onChange={handlePageInputChange}
+                    onKeyDown={handlePageInputKeyDown}
+                    placeholder="页码"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={handlePageJump}
+                    className={!pageInput ? "opacity-50" : ""}
+                  >
+                    跳转
+                  </Button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    if (currentPage * itemsPerPage >= data.length) {
+                      showAlert("已是最后一页", "无法前往下一页");
+                      return;
+                    }
+                    handleNextPage();
+                  }}
+                  className={currentPage * itemsPerPage >= data.length ? "opacity-50" : ""}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )

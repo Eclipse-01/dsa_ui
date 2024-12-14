@@ -13,14 +13,14 @@ export default function InfluxDBArticle() {
               <ol className="list-decimal pl-6 space-y-3">
                 <li>
                   下载安装包
-                  <ul className="list-disc pl-6 mt-2 text-gray-600">
+                  <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                     <li>访问 <a href="https://portal.influxdata.com/downloads/" className="text-blue-500 hover:underline">InfluxDB 下载页面</a></li>
                     <li>选择 Windows 版本下载</li>
                   </ul>
                 </li>
                 <li>
                   运行安装程序
-                  <ul className="list-disc pl-6 mt-2 text-gray-600">
+                  <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                     <li>双击下载的 .exe 文件</li>
                     <li>按照安装向导提示完成安装</li>
                     <li>默认安装路径: C:\Program Files\InfluxDB</li>
@@ -44,7 +44,7 @@ export default function InfluxDBArticle() {
                 </li>
                 <li>
                   验证安装
-                  <ul className="list-disc pl-6 mt-2 text-gray-600">
+                  <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                     <li>访问 <a href="http://localhost:8086" className="text-blue-500 hover:underline">http://localhost:8086</a></li>
                     <li>使用配置的用户名和密码登录</li>
                   </ul>
@@ -119,21 +119,21 @@ export default function InfluxDBArticle() {
             <ol className="list-decimal pl-6 space-y-4">
               <li>
                 访问 Web 控制台
-                <ul className="list-disc pl-6 mt-2 text-gray-600">
+                <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                   <li>打开浏览器访问 <a href="http://localhost:8086" className="text-blue-500 hover:underline">http://localhost:8086</a></li>
                   <li>使用设置的管理员账号登录</li>
                 </ul>
               </li>
               <li>
                 获取访问令牌
-                <ul className="list-disc pl-6 mt-2 text-gray-600">
+                <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                   <li>在 Web 界面中导航到 "Data" > "API Tokens"</li>
                   <li>记录生成的访问令牌，用于程序连接</li>
                 </ul>
               </li>
               <li>
                 创建数据桶（Bucket）
-                <ul className="list-disc pl-6 mt-2 text-gray-600">
+                <ul className="list-disc pl-6 mt-2 text-muted-foreground">
                   <li>导航到 "Data" > "Buckets"</li>
                   <li>点击 "Create Bucket" 创建新的数据桶</li>
                   <li>设置适当的数据保留策略</li>

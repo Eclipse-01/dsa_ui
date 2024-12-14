@@ -105,15 +105,16 @@ export class InfluxDBService {
     }
 
     // 删除数据
-    async deleteData(predicates: Record<string, string>) {
-        const deleteQuery = `
-            from(bucket: "${this.bucket}")
-                |> range(start: -3650d)
-                |> filter(fn: (r) => ${Object.entries(predicates)
-                    .map(([key, value]) => `r["${key}"] == "${value}"`)
-                    .join(' and ')})
-                |> filter(fn: (r) => r["_field"] == "value" or r["_field"] == "id")
-                |> drop()`
+    async deleteData(predicates: Record<string, string>, start: string = '2000-01-01T00:00:00Z', stop: string = new Date().toISOString()) {
+        const predicateString = Object.entries(predicates)
+            .map(([key, value]) => `${key}="${value}"`)
+            .join(' AND ');
+
+        const body = {
+            start: start,
+            stop: stop,
+            predicate: predicateString
+        };
 
         try {
             const params = new URLSearchParams({ 
@@ -121,10 +122,10 @@ export class InfluxDBService {
                 bucket: this.bucket
             });
 
-            const response = await fetch(`/api/query?${params}`, {
+            const response = await fetch(`${this.url}/api/v2/delete?${params}`, {
                 method: 'POST',
-                headers: this.getHeaders('application/vnd.flux'),
-                body: deleteQuery
+                headers: this.getHeaders('application/json'),
+                body: JSON.stringify(body)
             });
 
             if (!response.ok) {

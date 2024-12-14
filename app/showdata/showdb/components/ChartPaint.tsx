@@ -35,6 +35,7 @@ interface ChartPaintProps {
   isOpen: boolean
   onClose: () => void
   data: VitalData[]
+  fetchData: () => void; // 新增此行
 }
 
 const chartConfig = {
@@ -55,7 +56,7 @@ function downsampleData(data: any[], maxPoints: number) {
   return data.filter((_, index) => index % step === 0)
 }
 
-export function ChartPaint({ isOpen, onClose, data }: ChartPaintProps) {
+export function ChartPaint({ isOpen, onClose, data, fetchData }: ChartPaintProps) {
   const [timeRange, setTimeRange] = React.useState("all")
   const [isAnimationActive, setIsAnimationActive] = React.useState(true)
 

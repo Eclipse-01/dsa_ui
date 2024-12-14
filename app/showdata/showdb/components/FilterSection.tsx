@@ -21,7 +21,7 @@ interface FilterSectionProps {
   handleShowExtremes: () => void
   isExtremeDialogOpen: boolean
   setIsExtremeDialogOpen: (open: boolean) => void
-  selectedItems: number[]
+  selectedItems: string[]; // 修改此行
   extremeValues: { 
     max: { value: string; record: any | null };
     min: { value: string; record: any | null };
@@ -32,6 +32,8 @@ interface FilterSectionProps {
   handleShowChart: () => void;
   isChartOpen: boolean;
   setIsChartOpen: (value: boolean) => void;
+  fetchData: () => void; // 保留这个，以防其他地方需要直接调用 fetchData
+  loading: boolean; // 新增此行
 }
 
 export function FilterSection({
@@ -53,7 +55,9 @@ export function FilterSection({
   setBedFilter,
   handleShowChart,
   isChartOpen,
-  setIsChartOpen
+  setIsChartOpen,
+  fetchData, // 保留这个
+  loading // 新增此行
 }: FilterSectionProps) {
   return (
     <Card className="mb-6">
@@ -120,7 +124,12 @@ export function FilterSection({
           </Popover>
 
           {/* 按钮组 */}
-          <Button onClick={handleSearch}>查询</Button>
+          <Button 
+            onClick={handleSearch} // 只调用 handleSearch
+            disabled={loading} // 新增此行
+          >
+            {loading ? "查询中..." : "查询"} {/* 修改此行 */}
+          </Button>
           <Button variant="outline" onClick={handleClearFilters}>清除筛选</Button>
           <Button 
             variant="secondary" 

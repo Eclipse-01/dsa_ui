@@ -19,6 +19,7 @@ import {
   History,
   Settings,
   LogOut,
+  Podcast,
   PanelsTopLeft,
   UserCircle2,
 } from "lucide-react"
@@ -42,6 +43,12 @@ export default function MobileNavigation() {
       icon: <History className="w-6 h-6" />,
       path: "/showdata/showdb",
       description: "查看历史数据统计"
+    },
+    {
+      title: "传感器",
+      icon: <Podcast className="w-6 h-6" />,
+      path: "/showdata/sensors",
+      description: "连接和管理传感器"
     },
     {
       title: "系统设置",

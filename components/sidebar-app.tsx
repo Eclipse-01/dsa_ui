@@ -7,9 +7,10 @@ import {
   History,
   Settings,
   LogOut,
-  PanelsTopLeft,
+  Podcast,
   UserCircle2,
   FileText,
+  PanelsTopLeft,
 } from "lucide-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -62,6 +63,15 @@ export function Sidebar({ className }: SidebarProps) {
                 >
                   <History className="mr-2 h-4 w-4" />
                   <span>数据历史记录</span>
+                </Button>
+              </Link>
+              <Link href="/showdata/sensors">
+                <Button
+                  variant={pathname === "/showdata/sensors" ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                >
+                  <Podcast className="mr-2 h-4 w-4" />
+                  <span>传感器</span>
                 </Button>
               </Link>
               <Link href="/functions/settings">
