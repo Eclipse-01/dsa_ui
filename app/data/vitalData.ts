@@ -1,5 +1,5 @@
 export interface VitalData {
-  id: number
+  id: string  // 将 id 类型从 number 改为 string
   timestamp: string
   type: string
   value: string
