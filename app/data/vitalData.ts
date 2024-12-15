@@ -13,7 +13,7 @@ export interface VitalDataResponse {
 
 export const VITAL_DATA_TYPES = [
   "心率",
-  "血氧饱和度", 
+  "血氧饱和度",
   "血压",
   "体温",
   "呼吸率",
@@ -21,6 +21,19 @@ export const VITAL_DATA_TYPES = [
   "心率变异性",
   "压力水平"
 ] as const;
+
+export type VitalDataType = typeof VITAL_DATA_TYPES[number];
+
+export const VITAL_RANGES = {
+  "心率": { min: 60, max: 100, unit: "BPM" },
+  "血氧饱和度": { min: 95, max: 100, unit: "%" },
+  "血压": { min: 90, max: 140, unit: "mmHg" },
+  "体温": { min: 36, max: 37.5, unit: "°C" },
+  "呼吸率": { min: 12, max: 20, unit: "次/分" },
+  "血糖": { min: 3.9, max: 6.1, unit: "mmol/L" },
+  "心率变异性": { min: 20, max: 100, unit: "ms" },
+  "压力水平": { min: 1, max: 5, unit: "/5" }
+} as const;
 
 export const UNITS_MAP = {
   "心率": "BPM",

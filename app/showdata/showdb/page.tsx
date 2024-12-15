@@ -1,97 +1,69 @@
 "use client"
 
+import { Sidebar } from "@/components/sidebar-app"
+import { DataFilter } from "./components/data-filter"
+import { DataQuery } from "./components/data-query"
+import { GenerateDataDialog } from "./components/generate-data-dialog"
+import { Button } from "@/components/ui/button"
+import { FileDown } from "lucide-react"
 import { useState } from "react"
-import { FilterSection } from "./components/FilterSection"
-import { fetchVitalData } from "./components/LittleThings/influxService"
-import { DataTable } from "./components/DataTable"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { GenerateDataDialog } from "./components/GenerateDataDialog"
+import { DateRange } from "react-day-picker"
 
-export default function ShowDBPage() {
-  const [dataType, setDataType] = useState("")
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
-  const [data, setData] = useState<any[]>([])
+interface QueryParams {
+  dateRange: DateRange
+  vitalSign: string
+  bedNumber: string
+  findExtremes?: boolean // 添加最值查询标志
+}
 
-  const handleFilter = async (filters: {
-    vitalSign: string;
-    bedNumber: string;
-    startDate?: Date;
-    endDate?: Date;
-  }) => {
-    try {
-      console.log('开始筛选，参数:', filters);
-      if (!filters.startDate || !filters.endDate) {
-        throw new Error("日期范围不完整");
-      }
+export default function ShowdbPage() {
+  const [queryParams, setQueryParams] = useState<QueryParams | null>(null)
+  const [shouldQuery, setShouldQuery] = useState(false)
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false)
 
-      const result = await fetchVitalData(
-        filters.vitalSign,
-        filters.bedNumber,
-        filters.startDate,
-        filters.endDate
-      );
+  const handleQuery = (params: QueryParams) => {
+    setQueryParams(params)
+    setShouldQuery(true)  // 设置查询触发标志
+  }
 
-      console.log('筛选结果:', result);
-      setData(result.data);
-    } catch (error) {
-      console.error("数据获取失败:", error);
-      // 显示错误消息给用户
-      // ...
-    }
-  };
-
-  const handleGeneratedData = (generatedData: any[]) => {
-    setData(generatedData);
-  };
+  const handleQueryComplete = () => {
+    setShouldQuery(false)  // 重置查询触发标志
+  }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">数据库查询</h2>
-        <GenerateDataDialog onDataGenerated={handleGeneratedData} />
-      </div>
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>筛选条件</CardTitle>
-            <CardDescription>
-              选择需要查询的生理指标、床位和时间范围
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FilterSection
-              dataType={dataType}
-              setDataType={setDataType}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              onFilter={handleFilter}
+    <div className="min-h-screen">
+      <Sidebar className="hidden lg:block" />
+      <div className="min-h-screen bg-background lg:pl-[240px]">
+        <div className="p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">数据历史记录</h1>
+              <Button
+                variant="outline"
+                onClick={() => setShowGenerateDialog(true)}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                生成测试数据
+              </Button>
+            </div>
+            <DataFilter onQuery={handleQuery} />
+            
+            {/* 添加分隔和间距 */}
+            <div className="my-8 border-t border-border" />
+            
+            <DataQuery 
+              queryParams={queryParams} 
+              shouldQuery={shouldQuery}
+              onQueryComplete={handleQueryComplete}
             />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>查询结果</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.length > 0 ? (
-              <DataTable data={data} />
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                暂无数据，请选择筛选条件进行查询
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            <GenerateDataDialog
+              open={showGenerateDialog}
+              onOpenChange={setShowGenerateDialog}
+              vitalSigns={[]}  // 修改这里
+              bedNumbers={[]}  // 修改这里
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,0 +1,11 @@
+.data-table-container {
+  max-height: 600px;
+  overflow: auto;
+}
+
+.page-size-select {
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+}
