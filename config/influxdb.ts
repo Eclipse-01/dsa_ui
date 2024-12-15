@@ -1,18 +1,24 @@
 interface InfluxDBConfig {
-  url: string
-  token: string
-  org: string
-  bucket: string
+  url: string;
+  token: string;
+  org: string;
+  bucket: string;
 }
 
-function getInfluxDBConfig(): InfluxDBConfig {
-  return {
-    url: process.env.INFLUXDB_URL || 'http://localhost:8086',
-    token: process.env.INFLUXDB_TOKEN || 'your-token',
-    org: process.env.INFLUXDB_ORG || 'your-org',
-    bucket: process.env.INFLUXDB_BUCKET || 'vital_signs'
+export const getInfluxDBConfig = (): InfluxDBConfig | null => {
+  if (typeof window === 'undefined') return null;
+  
+  const savedConfig = localStorage.getItem('influxdb_config');
+  if (!savedConfig) return null;
+
+  try {
+    const config = JSON.parse(savedConfig);
+    return config;
+  } catch (error) {
+    console.error('解析 InfluxDB 配置失败:', error);
+    return null;
   }
-}
+};
 
 // 保存配置的函数
 const saveInfluxDBConfig = (config: InfluxDBConfig): void => {
@@ -22,7 +28,6 @@ const saveInfluxDBConfig = (config: InfluxDBConfig): void => {
 };
 
 export { 
-  getInfluxDBConfig,
   saveInfluxDBConfig,
   type InfluxDBConfig 
 };

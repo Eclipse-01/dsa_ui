@@ -1,3 +1,5 @@
+"use client"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -21,6 +23,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
+interface NavButtonProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+}
+
+function NavButton({ href, icon: Icon, label }: NavButtonProps) {
+  const pathname = usePathname()
+  const isActive = pathname === href
+
+  return (
+    <Link href={href} passHref>
+      <Button
+        variant="ghost"
+        className={cn(
+          "w-full justify-start gap-2",
+          isActive && "bg-accent text-accent-foreground"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </Button>
+    </Link>
+  )
+}
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -48,50 +76,31 @@ export function Sidebar({ className }: SidebarProps) {
           <div className="px-3 py-2">
             <h2 className="mb-2 px-4 text-lg font-semibold">医疗智能数据系统</h2>
             <div className="space-y-1">
-              <Button
-                variant={pathname === "/dashboard" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={handleDashboard}
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>数据监控面板</span>
-              </Button>
-              <Link href="/showdata/showdb">
-                <Button
-                  variant={pathname === "/showdata/showdb" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                >
-                  <History className="mr-2 h-4 w-4" />
-                  <span>数据历史记录</span>
-                </Button>
-              </Link>
-              <Link href="/showdata/sensors">
-                <Button
-                  variant={pathname === "/showdata/sensors" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                >
-                  <Podcast className="mr-2 h-4 w-4" />
-                  <span>传感器</span>
-                </Button>
-              </Link>
-              <Link href="/functions/settings">
-                <Button
-                  variant={pathname === "/functions/settings" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>系统设置</span>
-                </Button>
-              </Link>
-              <Link href="/document">
-                <Button
-                  variant={pathname === "/document" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  <span>文档</span>
-                </Button>
-              </Link>
+              <NavButton
+                href="/showdata/dashboard"
+                icon={LayoutDashboard}
+                label="数据监控面板"
+              />
+              <NavButton
+                href="/showdata/showdb"
+                icon={History}
+                label="数据历史记录"
+              />
+              <NavButton
+                href="/showdata/sensors"
+                icon={Podcast}
+                label="传感器"
+              />
+              <NavButton
+                href="/functions/settings"
+                icon={Settings}
+                label="系统设置"
+              />
+              <NavButton
+                href="/document"
+                icon={FileText}
+                label="文档"
+              />
             </div>
           </div>
         </div>

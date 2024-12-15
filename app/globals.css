@@ -47,6 +47,8 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --select: 0 0% 100%;
+    --select-foreground: 222.2 84% 4.9%;
   }
 
   .dark {
@@ -82,6 +84,8 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --select: 222.2 84% 4.9%;
+    --select-foreground: 210 40% 98%;
   }
 
   /* 石板灰主题 */
@@ -173,4 +177,9 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* 增加 Select 组件的样式优先级 */
+.select-value {
+  @apply text-foreground !important;
 }

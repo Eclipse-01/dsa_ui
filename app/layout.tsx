@@ -4,13 +4,14 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeInitializer } from "@/components/theme-initializer";
 import { FontInitializer } from "@/components/font-initializer";
+import { Toaster } from "@/components/toaster";
 
 const miSans = localFont({
   src: [
     {
       path: './fonts/MiSans-Light.woff',  // 使用更细的字重
       weight: '300',  // 调整为 Light 字重
-      style: 'normal',
+       style: 'normal',
     }
   ],
   variable: '--font-misans',
@@ -41,7 +42,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${miSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${miSans.variable} font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -49,9 +50,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ThemeInitializer />
-          <FontInitializer />
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
