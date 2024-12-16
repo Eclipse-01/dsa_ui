@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { FileDown } from "lucide-react"
 import { useState } from "react"
 import { DateRange } from "react-day-picker"
+// 删除 AddItemDialog 和 VitalData 的导入
 
 interface QueryParams {
   dateRange: DateRange
@@ -20,6 +21,7 @@ export default function ShowdbPage() {
   const [queryParams, setQueryParams] = useState<QueryParams | null>(null)
   const [shouldQuery, setShouldQuery] = useState(false)
   const [showGenerateDialog, setShowGenerateDialog] = useState(false)
+  // 删除 open state
 
   const handleQuery = (params: QueryParams) => {
     setQueryParams(params)
@@ -29,6 +31,8 @@ export default function ShowdbPage() {
   const handleQueryComplete = () => {
     setShouldQuery(false)  // 重置查询触发标志
   }
+
+  // 删除 handleSaveData 函数
 
   return (
     <div className="min-h-screen">
@@ -62,6 +66,7 @@ export default function ShowdbPage() {
               vitalSigns={[]}  // 修改这里
               bedNumbers={[]}  // 修改这里
             />
+            {/* 删除 Button 和 AddItemDialog 组件 */}
           </div>
         </div>
       </div>

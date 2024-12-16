@@ -398,7 +398,7 @@ export function GenerateDataDialog({
             批量生成数据
           </DialogTitle>
           <DialogDescription className="text-gray-500 dark:text-gray-400 mt-2">
-            为指定的生命体征和床位生成最近1小时的模拟数据
+            为指定的生命体征和床位生成指定时间的模拟数据
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-6">

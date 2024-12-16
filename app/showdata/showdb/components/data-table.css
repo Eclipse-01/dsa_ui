@@ -9,3 +9,26 @@
   border: 1px solid #e2e8f0;
   background-color: white;
 }
+
+.scroll-mode {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.scroll-mode::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-mode::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.scroll-mode::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scroll-mode::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

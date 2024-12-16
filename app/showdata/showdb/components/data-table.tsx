@@ -34,6 +34,7 @@ import "./data-table.css"
 import { VitalData } from "../types"
 import { EditDialog } from "./edit-dialog"
 import { Badge } from "@/components/ui/badge"
+import { AddItemDialog } from "./add-item"
 
 interface DataTableProps {
   data: VitalData[];
@@ -46,6 +47,7 @@ interface DataTableProps {
   onEdit: (data: VitalData) => Promise<void>;
   onDelete: (data: VitalData) => Promise<void>;
   onDeleteMultiple: (data: VitalData[]) => Promise<void>;
+  onAdd: (data: VitalData) => Promise<void>;
 }
 
 export function DataTable({ 
@@ -58,13 +60,15 @@ export function DataTable({
   fetchAllData,
   onEdit,
   onDelete,
-  onDeleteMultiple
+  onDeleteMultiple,
+  onAdd
 }: DataTableProps) {
   const [selected, setSelected] = React.useState<VitalData[]>([])
   const [isSelectingAll, setIsSelectingAll] = React.useState(false)
   const [showChart, setShowChart] = React.useState(false)
   const [jumpPage, setJumpPage] = React.useState("")
   const [editingData, setEditingData] = React.useState<VitalData | null>(null)
+  const [showAddDialog, setShowAddDialog] = React.useState(false)
 
   const toggleSelectAll = async (checked: boolean) => {
     if (checked) {
@@ -178,40 +182,50 @@ export function DataTable({
   return (
     <div className="space-y-4">
       <div className="rounded-md border shadow-sm p-4 mb-4">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleSelectAll(!isSelectingAll)}
+            >
+              {isSelectingAll ? '取消全选' : '全选'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportSelected}
+              disabled={selected.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              导出所选 {selected.length > 0 && `(${selected.length})`}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowChart(!showChart)}
+              disabled={selected.length === 0}
+            >
+              <ChartLine className="mr-2 h-4 w-4" />
+              {showChart ? '隐藏图表' : '显示图表'}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelected}
+              disabled={selected.length === 0}
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              删除所选 {selected.length > 0 && `(${selected.length})`}
+            </Button>
+          </div>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            onClick={() => toggleSelectAll(!isSelectingAll)}
+            onClick={() => setShowAddDialog(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white"
           >
-            {isSelectingAll ? '取消全选' : '全选'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportSelected}
-            disabled={selected.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            导出所选 {selected.length > 0 && `(${selected.length})`}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowChart(!showChart)}
-            disabled={selected.length === 0}
-          >
-            <ChartLine className="mr-2 h-4 w-4" />
-            {showChart ? '隐藏图表' : '显示图表'}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDeleteSelected}
-            disabled={selected.length === 0}
-          >
-            <Trash className="mr-2 h-4 w-4" />
-            删除所选 {selected.length > 0 && `(${selected.length})`}
+            添加数据
           </Button>
         </div>
 
@@ -224,7 +238,7 @@ export function DataTable({
           />
         )}
 
-        <div className="rounded-md border data-table-container">
+        <div className={`rounded-md border data-table-container`}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -355,6 +369,14 @@ export function DataTable({
           open={true}
           onClose={() => setEditingData(null)}
           onSave={handleEdit}
+        />
+      )}
+
+      {showAddDialog && (
+        <AddItemDialog
+          open={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          onSave={onAdd}
         />
       )}
     </div>

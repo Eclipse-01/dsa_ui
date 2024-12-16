@@ -11,6 +11,7 @@ export function AppSettings() {
   const [chartAnimation, setChartAnimation] = useState(true)
   const [showMiniCharts, setShowMiniCharts] = useState(true)
   const [fontFamily, setFontFamily] = useState("system-ui")
+  const [tableScrollMode, setTableScrollMode] = useState(false)
 
   // 加载设置
   useEffect(() => {
@@ -21,6 +22,7 @@ export function AppSettings() {
       setChartAnimation(settings.chartAnimation ?? true)
       setShowMiniCharts(settings.showMiniCharts ?? true)
       setFontFamily(settings.fontFamily ?? "system-ui")
+      setTableScrollMode(settings.tableScrollMode ?? false)
     }
   }, [])
 
@@ -116,6 +118,23 @@ export function AppSettings() {
             onCheckedChange={(checked) => {
               setShowMiniCharts(checked)
               saveSettings({ showMiniCharts: checked })
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="table-scroll">数据表格滚动模式</Label>
+            <div className="text-sm text-muted-foreground">
+              启用后将在单页显示所有数据,通过滚动查看
+            </div>
+          </div>
+          <Switch
+            id="table-scroll"
+            checked={tableScrollMode}
+            onCheckedChange={(checked) => {
+              setTableScrollMode(checked)
+              saveSettings({ tableScrollMode: checked })
             }}
           />
         </div>
