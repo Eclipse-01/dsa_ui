@@ -7,21 +7,19 @@ import { DataTable } from "./data-table"
 import { VitalData } from "../types"
 import { InfluxDB, Point } from '@influxdata/influxdb-client'
 
-// 添加 QueryParams 类型定义
+// 更新 QueryParams 接口
 interface QueryParams {
   dateRange: DateRange;
   vitalSign: string;
   bedNumber: string;
+  findExtremes?: boolean;
 }
 
+// 修改 QueryProps 接口
 interface DataQueryProps {
-  queryParams: {
-    dateRange: DateRange
-    vitalSign: string
-    bedNumber: string
-  } | null
-  shouldQuery: boolean
-  onQueryComplete: () => void
+  queryParams: QueryParams | null;  // 使用完整的 QueryParams 接口
+  shouldQuery: boolean;
+  onQueryComplete: () => void;
 }
 
 interface QueryConfig {
@@ -116,6 +114,42 @@ const buildDataQuery = (config: QueryConfig, params: any, from: Date, to: Date, 
   `
 }
 
+// 修改 convertToVitalData 函数
+const convertToVitalData = (result: QueryResult): VitalData => {
+  return {
+    _time: result._time,
+    _value: result._value || result.value || 0,
+    systolic: result.systolic,
+    diastolic: result.diastolic,
+    unit: result.unit || '',
+    bed: result.bed || '',
+    type: result.type || '',
+    isExtreme: false // 添加 isExtreme 属性
+  }
+}
+
+// 添加类型保护函数
+const isValidQueryResult = (result: any): result is { _value: number } => {
+  return result && typeof result._value === 'number';
+};
+
+// 添加 fetchAllData 实现
+const fetchAllData = async (config: QueryConfig, queryParams: QueryParams): Promise<VitalData[]> => {
+  const { from, to } = getTimeRange(queryParams.dateRange);
+  const query = `
+    from(bucket: "${config.bucket}")
+      |> range(start: ${from.toISOString()}, stop: ${to.toISOString()})
+      |> filter(fn: (r) => r["_measurement"] == "vital_signs")
+      |> filter(fn: (r) => r["type"] == "${queryParams.vitalSign}")
+      |> filter(fn: (r) => r["bed"] == "${queryParams.bedNumber}号床")
+      |> filter(fn: (r) => r["_field"] == "value")
+      |> sort(columns: ["_time"], desc: true)
+  `;
+
+  const results = await executeFluxQuery(query, config) as QueryResult[];
+  return results.map(convertToVitalData);
+};
+
 export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQueryProps) {
   const [data, setData] = useState<VitalData[]>([])
   const [extremeData, setExtremeData] = useState<VitalData[]>([])
@@ -144,18 +178,6 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
     }
   }
 
-  const convertToVitalData = (result: QueryResult): VitalData => {
-    return {
-      _time: result._time,
-      _value: result._value || result.value || 0,
-      systolic: result.systolic,
-      diastolic: result.diastolic,
-      unit: result.unit || '',
-      bed: result.bed || '',
-      type: result.type || ''
-    }
-  }
-
   // 添加查找极值的函数
   const findExtremeValues = (data: VitalData[]) => {
     if (data.length === 0) return []
@@ -172,72 +194,83 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
     return [maxValue, minValue]
   }
 
+  // 修复 fetchData 函数
   const fetchData = async () => {
     if (!queryParams) return;
     
     try {
       setLoading(true);
-      const results = await fetchAllData();
+      
+      const configStr = localStorage.getItem('influxdb_config')
+      if (!configStr) throw new Error("未找到数据库配置")
+      const config = JSON.parse(configStr) as QueryConfig
+      const { from, to } = getDateRange(queryParams.dateRange)
+      
+      // 获取总数
+      const countQuery = buildCountQuery(config, queryParams, from, to)
+      const countResult = await executeFluxQuery(countQuery, config)
+      const total = isValidQueryResult(countResult[0]) ? countResult[0]._value : 0;
+      setTotalCount(total)
+      
+      // 计算最大页数
+      const maxPage = Math.ceil(total / 10)
+      
+      // 确保当前页不超过最大页数
+      const validCurrentPage = Math.min(currentPage, maxPage)
+      if (validCurrentPage !== currentPage) {
+        setCurrentPage(validCurrentPage)
+      }
+      
+      // 获取当前页数据
+      const dataQuery = buildDataQuery(config, queryParams, from, to, validCurrentPage, 10)
+      const results = await executeFluxQuery(dataQuery, config) as QueryResult[]
+      
+      // 处理数据
+      const pageData = results.map(convertToVitalData)
       
       if (queryParams.findExtremes) {
-        // 如果是查找极值，设置极值数据
-        const extremes = findExtremeValues(results);
-        setData(extremes);
+        const extremes = findExtremeValues(pageData);
+        setData(extremes.map(d => ({ ...d, isExtreme: true })));
       } else {
-        // 普通查询，显示所有数据
-        setData(results);
+        setData(pageData);
       }
+      
+      // 更新是否有下一页
+      setHasMore(validCurrentPage < maxPage)
+      
     } catch (error) {
       console.error('查询失败:', error);
+      setError(error instanceof Error ? error.message : '查询失败');
     } finally {
       setLoading(false);
       onQueryComplete();
     }
   };
 
-  const fetchAllData = async (): Promise<VitalData[]> => {
-    if (!queryParams) return []
+  // 实现组件级别的 fetchAllData
+  const handleFetchAllData = async () => {
+    if (!queryParams) return [];
+    
+    const configStr = localStorage.getItem('influxdb_config')
+    if (!configStr) throw new Error("未找到数据库配置")
+    const config = JSON.parse(configStr) as QueryConfig
+    
+    return fetchAllData(config, queryParams);
+  };
 
-    try {
-      const configStr = localStorage.getItem('influxdb_config')
-      if (!configStr) {
-        throw new Error("未找到数据库配置")
-      }
-      
-      const config = JSON.parse(configStr) as QueryConfig
-      const { vitalSign, bedNumber } = queryParams
-      const { from, to } = getDateRange(queryParams.dateRange)
+  // 修改 handlePageChange
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    await fetchData();
+  };
 
-      const query = `
-        from(bucket: "${config.bucket}")
-          |> range(start: ${from.toISOString()}, stop: ${to.toISOString()})
-          |> filter(fn: (r) => r["_measurement"] == "vital_signs")
-          |> filter(fn: (r) => r["type"] == "${vitalSign}")
-          |> filter(fn: (r) => r["bed"] == "${bedNumber}号床")
-          ${vitalSign === "血压" 
-            ? '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")'
-            : '|> filter(fn: (r) => r["_field"] == "value")'}
-          |> sort(columns: ["_time"], desc: true)
-      `
-
-      const result = await executeFluxQuery(query, config) as QueryResult[]
-      return result.map(convertToVitalData)
-    } catch (err) {
-      console.error(err)
-      return []
-    }
-  }
-
-  const handlePageChange = (newPage: number) => {
-    fetchData(newPage)
-  }
-
+  // 修改 useEffect
   useEffect(() => {
     if (shouldQuery) {
-      setCurrentPage(1)
-      fetchData(1)
+      setCurrentPage(1);
+      fetchData();
     }
-  }, [queryParams, shouldQuery])
+  }, [queryParams, shouldQuery]);
 
   const handleEdit = async (editedData: VitalData) => {
     if (!queryParams) return
@@ -284,7 +317,7 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
       await writeApi.flush()
       await writeApi.close()
       
-      await fetchData(currentPage)
+      await fetchData();
     } catch (error) {
       console.error('编辑失败:', error)
       throw error
@@ -306,7 +339,7 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
       const deleteStop = new Date(timestamp.getTime() + 1);   // 1ms after
 
       await executeDeleteRequest(config, predicate, deleteStart.toISOString(), deleteStop.toISOString());
-      await fetchData(currentPage);
+      await fetchData();
     } catch (error) {
       console.error('删除失败:', error);
       throw error;
@@ -331,7 +364,7 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
         await executeDeleteRequest(config, predicate, deleteStart.toISOString(), deleteStop.toISOString());
       }
       
-      await fetchData(currentPage);
+      await fetchData();
     } catch (error) {
       console.error('批量删除失败:', error);
       throw error;
@@ -348,8 +381,8 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
       onPageChange={handlePageChange}
       hasMore={hasMore}
       totalCount={totalCount}
-      pageSize={PAGE_SIZE}
-      fetchAllData={fetchAllData}
+      pageSize={10} // 固定为10
+      fetchAllData={handleFetchAllData}  // 使用新实现的函数
       onEdit={handleEdit}
       onDelete={handleDelete}
       onDeleteMultiple={handleDeleteMultiple}

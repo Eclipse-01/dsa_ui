@@ -122,7 +122,7 @@ export function AppSettings() {
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="table-scroll">数据表格滚动模式</Label>
             <div className="text-sm text-muted-foreground">
@@ -137,7 +137,8 @@ export function AppSettings() {
               saveSettings({ tableScrollMode: checked })
             }}
           />
-        </div>
+        </div> */}
+        {/* 禁用了数据表格滚动模式，以减少Bug */}
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">

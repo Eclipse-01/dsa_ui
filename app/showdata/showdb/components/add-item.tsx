@@ -21,10 +21,10 @@ import {
 import { VitalData } from "../types"
 import { getStoredConfig } from "@/lib/influxdb"
 
-interface AddItemDialogProps {
-  open: boolean
-  onClose: () => void
-  onSave: (data: VitalData) => Promise<void>
+export interface AddItemDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSave?: (data: VitalData) => Promise<void>;  // 改为可选
 }
 
 const VITAL_RANGES = {
@@ -63,6 +63,7 @@ export function AddItemDialog({ open, onClose, onSave }: AddItemDialogProps) {
   // 使用 useCallback 优化表单提交
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!onSave) return;  // 添加检查
     
     if (!formData.type || !formData.value || !formData.bed || !formData.timestamp) {
       alert('请填写完整信息')

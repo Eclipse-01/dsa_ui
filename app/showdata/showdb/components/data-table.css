@@ -1,6 +1,50 @@
 .data-table-container {
-  max-height: 600px;
-  overflow: auto;
+  position: relative;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  /* 移除固定高度和overflow限制 */
+}
+
+.data-table-container table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table-container thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: white;
+  background-color: #f9fafb;
+}
+
+.data-table-container tbody tr {
+  position: relative;
+}
+
+.data-table-container th,
+.data-table-container td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.35rem 0.5rem;  /* 稍微增加垂直内边距 */
+}
+
+.data-table-container tr {
+  height: 2.25rem;  /* 增加行高 */
+}
+
+.data-table-container .compact-cell {
+  white-space: nowrap;  /* 防止内容换行 */
+  overflow: hidden;
+  text-overflow: ellipsis;  /* 超出部分显示省略号 */
+}
+
+.data-table-container tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table-container tbody tr:hover {
+  background-color: #f9fafb;
 }
 
 .page-size-select {

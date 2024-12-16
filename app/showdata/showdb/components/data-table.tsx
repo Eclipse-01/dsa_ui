@@ -42,12 +42,12 @@ interface DataTableProps {
   onPageChange: (page: number) => void;
   hasMore: boolean;
   totalCount: number;
-  pageSize: number;
+  pageSize: 10; // 将类型从 number 改为字面量类型 10
   fetchAllData: () => Promise<VitalData[]>;
   onEdit: (data: VitalData) => Promise<void>;
   onDelete: (data: VitalData) => Promise<void>;
   onDeleteMultiple: (data: VitalData[]) => Promise<void>;
-  onAdd: (data: VitalData) => Promise<void>;
+  onAdd?: (data: VitalData) => Promise<void>;  // 将 onAdd 改为可选属性
 }
 
 export function DataTable({ 
@@ -56,7 +56,7 @@ export function DataTable({
   onPageChange, 
   hasMore, 
   totalCount, 
-  pageSize,
+  pageSize, // 这个值现在只能是 10
   fetchAllData,
   onEdit,
   onDelete,
@@ -70,27 +70,36 @@ export function DataTable({
   const [editingData, setEditingData] = React.useState<VitalData | null>(null)
   const [showAddDialog, setShowAddDialog] = React.useState(false)
 
+  const displayData = React.useMemo(() => {
+    // 如果数据少于10条，直接显示所有数据
+    if (data.length <= 10) return data;
+    // 否则精确截取10条数据
+    return data.slice(0, 10);
+  }, [data]);
+
+  const totalPages = Math.ceil(totalCount / 10) // 直接使用 10
+  const start = ((currentPage - 1) * 10) + 1
+  const end = Math.min(start + (displayData.length - 1), totalCount) // 确保不超过总数
+
   const toggleSelectAll = async (checked: boolean) => {
     if (checked) {
+      // 获取所有数据并全选
       const allData = await fetchAllData()
-      // 创建一个函数来检查两个数据项是否相同
-      const isSameItem = (a: VitalData, b: VitalData) => 
-        a._time === b._time && 
-        a.type === b.type && 
-        a.bed === b.bed;
-
-      // 过滤掉已经在当前页面的数据
-      const uniqueData = allData.filter(item => 
-        !data.some(currentItem => isSameItem(item, currentItem))
-      );
-
-      // 合并当前页面的数据和其他唯一数据
-      setSelected([...data, ...uniqueData]);
+      setSelected(allData)
       setIsSelectingAll(true)
     } else {
       setSelected([])
       setIsSelectingAll(false)
     }
+  }
+
+  // 新增函数：检查某个项目是否被选中
+  const isItemSelected = (item: VitalData) => {
+    return selected.some(i => 
+      i._time === item._time && 
+      i.type === item.type && 
+      i.bed === item.bed
+    )
   }
 
   const toggleSelect = (item: VitalData) => {
@@ -139,7 +148,8 @@ export function DataTable({
   const handleJump = (e: React.FormEvent) => {
     e.preventDefault()
     const pageNum = parseInt(jumpPage)
-    if (!isNaN(pageNum) && pageNum >= 1) {
+    // 添加页码范围验证
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
       onPageChange(pageNum)
       setJumpPage("")
     }
@@ -175,10 +185,6 @@ export function DataTable({
     }
   }
 
-  const totalPages = Math.ceil(totalCount / pageSize)
-  const start = ((currentPage - 1) * pageSize) + 1
-  const end = start + data.length - 1
-
   return (
     <div className="space-y-4">
       <div className="rounded-md border shadow-sm p-4 mb-4">
@@ -188,8 +194,10 @@ export function DataTable({
               variant="outline"
               size="sm"
               onClick={() => toggleSelectAll(!isSelectingAll)}
+              className="min-w-[100px]"
             >
-              {isSelectingAll ? '取消全选' : '全选'}
+              {isSelectingAll ? '取消全选' : '全选所有页'}
+              {isSelectingAll && selected.length > 0 && ` (${selected.length})`}
             </Button>
             <Button
               variant="outline"
@@ -219,14 +227,16 @@ export function DataTable({
               删除所选 {selected.length > 0 && `(${selected.length})`}
             </Button>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowAddDialog(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            添加数据
-          </Button>
+          {onAdd && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              添加数据
+            </Button>
+          )}
         </div>
 
         {selected.length > 0 && (
@@ -238,7 +248,7 @@ export function DataTable({
           />
         )}
 
-        <div className={`rounded-md border data-table-container`}>
+        <div className="rounded-md border data-table-container">
           <Table>
             <TableHeader>
               <TableRow>
@@ -252,35 +262,36 @@ export function DataTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length > 0 ? (
-                data.map((item, index) => (
-                  <TableRow key={item._time + index}>
-                    <TableCell>
+              {displayData.length > 0 ? (
+                displayData.map((item, index) => (
+                  <TableRow key={item._time + index} className="h-9">  {/* 增加行高 */}
+                    <TableCell className="p-0 pl-2 py-1">  {/* 调整垂直内边距 */}
                       <Checkbox
-                        checked={selected.includes(item)}
+                        checked={isItemSelected(item) || isSelectingAll}
                         onCheckedChange={() => toggleSelect(item)}
+                        className="h-4 w-4"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="compact-cell py-1.5">  {/* 增加垂直内边距 */}
                       {format(new Date(item._time), "yyyy-MM-dd HH:mm:ss")}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="compact-cell py-1.5">
+                      <div className="flex items-center gap-1">
                         <span>{item._value}</span>
                         {item.isExtreme && (
                           <Badge variant={item._value === Math.max(...data.map(d => d._value)) ? "success" : "destructive"}>
-                            {item._value === Math.max(...data.map(d => d._value)) ? "最大值" : "最小值"}
+                            {item._value === Math.max(...data.map(d => d._value)) ? "最大" : "最小"}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell>{item.bed}</TableCell>
-                    <TableCell>{item.type}</TableCell>
-                    <TableCell>
+                    <TableCell className="compact-cell py-1.5">{item.unit}</TableCell>
+                    <TableCell className="compact-cell py-1.5">{item.bed}</TableCell>
+                    <TableCell className="compact-cell py-1.5">{item.type}</TableCell>
+                    <TableCell className="p-0 py-1">  {/* 调整垂直内边距 */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon">
+                          <Button variant="outline" size="sm" className="h-7 w-7 p-0">  {/* 稍微增加按钮大小 */}
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -310,11 +321,13 @@ export function DataTable({
           </Table>
         </div>
 
+        {/* 分页控件 */}
         {data.length > 0 && (
           <div className="flex justify-between items-center mt-4">
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline"
+                size="sm"
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
               >
@@ -328,7 +341,7 @@ export function DataTable({
                   max={totalPages}
                   value={jumpPage}
                   onChange={(e) => setJumpPage(e.target.value)}
-                  className="w-24 h-9"
+                  className="w-20 h-8 text-center"
                   placeholder={currentPage.toString()}
                 />
                 <span className="text-sm text-muted-foreground">
@@ -336,6 +349,7 @@ export function DataTable({
                 </span>
                 <Button 
                   variant="outline"
+                  size="sm"
                   onClick={handleJump}
                   disabled={!jumpPage || isNaN(parseInt(jumpPage)) || 
                     parseInt(jumpPage) < 1 || parseInt(jumpPage) > totalPages}
@@ -346,19 +360,20 @@ export function DataTable({
 
               <Button 
                 variant="outline"
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={!hasMore}
+                size="sm"
+                onClick={() => {
+                  if (currentPage < totalPages) {
+                    onPageChange(currentPage + 1)
+                  }
+                }}
+                disabled={currentPage >= totalPages}
               >
                 下一页
               </Button>
             </div>
-          </div>
-        )}
-
-        {data.length > 0 && (
-          <div className="text-sm text-muted-foreground text-right mt-2">
-            第 {currentPage} 页，共 {totalPages} 页，
-            当前展示第 {start}-{end} 条，共 {totalCount} 条
+            <div className="text-sm text-muted-foreground">
+              第 {currentPage} 页，共 {totalPages} 页，当前展示第 {start}-{end} 条，共 {totalCount} 条
+            </div>
           </div>
         )}
       </div>
