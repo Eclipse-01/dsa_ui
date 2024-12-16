@@ -35,6 +35,7 @@ import { VitalData } from "../types"
 import { EditDialog } from "./edit-dialog"
 import { Badge } from "@/components/ui/badge"
 import { AddItemDialog } from "./add-item"
+import { PlzWait } from "@/components/ui/plz-wait"
 
 interface DataTableProps {
   data: VitalData[];
@@ -65,6 +66,7 @@ export function DataTable({
 }: DataTableProps) {
   const [selected, setSelected] = React.useState<VitalData[]>([])
   const [isSelectingAll, setIsSelectingAll] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(false)
   const [showChart, setShowChart] = React.useState(false)
   const [jumpPage, setJumpPage] = React.useState("")
   const [editingData, setEditingData] = React.useState<VitalData | null>(null)
@@ -83,10 +85,18 @@ export function DataTable({
 
   const toggleSelectAll = async (checked: boolean) => {
     if (checked) {
-      // 获取所有数据并全选
-      const allData = await fetchAllData()
-      setSelected(allData)
-      setIsSelectingAll(true)
+      try {
+        setIsLoading(true)
+        const allData = await fetchAllData()
+        if (allData.length > 100000) {
+          // 显示加载提示
+          setIsLoading(true)
+        }
+        setSelected(allData)
+        setIsSelectingAll(true)
+      } finally {
+        setIsLoading(false)
+      }
     } else {
       setSelected([])
       setIsSelectingAll(false)
@@ -115,7 +125,7 @@ export function DataTable({
         prev.some(i => 
           i._time === item._time && 
           i.type === item.type && 
-          i.bed === item.bed
+          i.bed !== item.bed
         )
           ? prev.filter(i => 
               i._time !== item._time || 
@@ -187,6 +197,7 @@ export function DataTable({
 
   return (
     <div className="space-y-4">
+      {isLoading && <PlzWait message="正在加载数据，请稍候..." />}
       <div className="rounded-md border shadow-sm p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

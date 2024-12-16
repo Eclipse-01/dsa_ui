@@ -20,16 +20,76 @@ import {
 } from "@/components/ui/chart"
 import type { VitalData, ChartDataPoint } from "../../types"
 
-// 添加数据采样函数
-const sampleData = (data: VitalData[], sampleSize: number = 1000): VitalData[] => {
+// 添加线性回归计算函数
+const calculateLinearRegression = (data: VitalData[]): {
+  slope: number;
+  intercept: number;
+  r2: number;
+} => {
+  const n = data.length;
+  if (n < 2) return { slope: 0, intercept: 0, r2: 0 };
+
+  // 将时间转换为相对时间（以首个时间点为0）
+  const baseTime = new Date(data[0]._time).getTime();
+  const xValues = data.map(d => (new Date(d._time).getTime() - baseTime) / (1000 * 60)); // 转换为分钟
+  const yValues = data.map(d => d._value);
+
+  // 计算均值
+  const xMean = xValues.reduce((a, b) => a + b, 0) / n;
+  const yMean = yValues.reduce((a, b) => a + b, 0) / n;
+
+  // 计算斜率和截距
+  let numerator = 0;
+  let denominator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (xValues[i] - xMean) * (yValues[i] - yMean);
+    denominator += Math.pow(xValues[i] - xMean, 2);
+  }
+
+  const slope = denominator !== 0 ? numerator / denominator : 0;
+  const intercept = yMean - slope * xMean;
+
+  // 计算R²
+  const yPredicted = xValues.map(x => slope * x + intercept);
+  const ssRes = yValues.reduce((sum, y, i) => sum + Math.pow(y - yPredicted[i], 2), 0);
+  const ssTot = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+  const r2 = 1 - (ssRes / ssTot);
+
+  return { slope, intercept, r2 };
+}
+
+// 修改为平均值降采样法
+const sampleData = (data: VitalData[], sampleSize: number = 100): VitalData[] => {
   if (data.length <= sampleSize) return data;
   
-  const step = Math.floor(data.length / sampleSize);
   const sampled: VitalData[] = [];
+  const windowSize = Math.floor(data.length / sampleSize);
   
-  for (let i = 0; i < data.length; i += step) {
-    sampled.push(data[i]);
+  // 始终保留第一个点
+  sampled.push(data[0]);
+  
+  // 对每个窗口计算平均值
+  for (let i = 1; i < data.length - windowSize; i += windowSize) {
+    let sum = 0;
+    let timeSum = 0;
+    
+    for (let j = i; j < i + windowSize && j < data.length; j++) {
+      sum += data[j]._value;
+      timeSum += new Date(data[j]._time).getTime();
+    }
+    
+    const avgValue = sum / windowSize;
+    const avgTime = new Date(timeSum / windowSize).toISOString();
+    
+    sampled.push({
+      ...data[i],
+      _value: avgValue,
+      _time: avgTime,
+    });
   }
+  
+  // 始终保留最后一个点
+  sampled.push(data[data.length - 1]);
   
   return sampled;
 }
@@ -75,13 +135,16 @@ export function VitalSignsChart({ data, type, open, onClose }: VitalSignsChartPr
   const sampledData = sampleData(data);
   const { min: minValue, max: maxValue } = getMinMaxValues(sampledData);
 
-  // 计算趋势时添加默认值处理
+  // 使用线性回归计算趋势
+  const { slope, r2 } = calculateLinearRegression(sampledData);
+  const trend = slope !== 0 ? slope > 0 : false;
+  
+  // 计算整体变化百分比（基于回归线）
   const firstValue = sampledData[0]?._value ?? 0;
-  const lastValue = sampledData[sampledData.length - 1]?._value ?? 0;
-  const trend = lastValue > firstValue;
-  const trendPercentage = firstValue !== 0 
-    ? ((lastValue - firstValue) / firstValue * 100)
-    : 0;
+  const totalMinutes = (new Date(sampledData[sampledData.length - 1]._time).getTime() - 
+                       new Date(sampledData[0]._time).getTime()) / (1000 * 60);
+  const totalChange = slope * totalMinutes;
+  const trendPercentage = firstValue !== 0 ? (totalChange / firstValue * 100) : 0;
 
   // 修改数据处理逻辑，移除血压特殊处理
   const chartData: ChartDataPoint[] = sampledData.map(item => ({
@@ -172,6 +235,12 @@ export function VitalSignsChart({ data, type, open, onClose }: VitalSignsChartPr
                   <TrendingUp className="h-4 w-4 text-green-500" /> : 
                   <TrendingDown className="h-4 w-4 text-red-500" />
                 }
+                <span className="text-sm text-gray-500 ml-2">
+                  (R² = {r2.toFixed(3)})
+                </span>
+              </div>
+              <div className="text-sm text-gray-500">
+                每分钟{Math.abs(slope).toFixed(3)}的速率{trend ? "增长" : "下降"}
               </div>
             </div>
 
