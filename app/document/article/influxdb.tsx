@@ -67,7 +67,7 @@ export default function InfluxDBArticle() {
                   <div className="overflow-x-auto">
                     <pre className="bg-muted p-3 rounded mt-2 w-full">
                       <code className="block whitespace-pre overflow-x-auto text-sm">wget -q https://repos.influxdata.com/influxdb.key</code>
-                      <code className="block whitespace-pre overflow-x-auto text-sm">echo '23a1c8836f0afc5ed24e0486339d7cc8f6790b83886c4c96995b88a061c5bb5d influxdb.key' | sha256sum -c && cat influxdb.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/influxdb.gpg > /dev/null</code>
+                      <code className="block whitespace-pre overflow-x-auto text-sm">echo '23a1c8836f0afc5ed24e0486339d7cc8f6790b83886c4c96995b88a061c5bb5d influxdb.key' | sha256sum -c && cat influxdb.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/influxdb.gpg {'>'} /dev/null</code>
                       <code className="block whitespace-pre overflow-x-auto text-sm">echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdb.gpg] https://repos.influxdata.com/debian stable main' | sudo tee /etc/apt/sources.list.d/influxdata.list</code>
                     </pre>
                   </div>
@@ -127,14 +127,14 @@ export default function InfluxDBArticle() {
               <li>
                 获取访问令牌
                 <ul className="list-disc pl-6 mt-2 text-muted-foreground">
-                  <li>在 Web 界面中导航到 "Data" > "API Tokens"</li>
+                  <li>在 Web 界面中导航到 "Data" {'>'} "API Tokens"</li>
                   <li>记录生成的访问令牌，用于程序连接</li>
                 </ul>
               </li>
               <li>
                 创建数据桶（Bucket）
                 <ul className="list-disc pl-6 mt-2 text-muted-foreground">
-                  <li>导航到 "Data" > "Buckets"</li>
+                  <li>导航到 "Data" {'>'} "Buckets"</li>
                   <li>点击 "Create Bucket" 创建新的数据桶</li>
                   <li>设置适当的数据保留策略</li>
                 </ul>

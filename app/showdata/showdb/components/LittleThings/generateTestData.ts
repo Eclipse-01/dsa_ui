@@ -48,7 +48,7 @@ export const generateTestData = async function* (
   onProgress?: (progress: number) => void
 ) {
   const { startDate, endDate, type, bedNumber, interval = 5 } = config;
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
   const totalDuration = endDate.getTime() - startDate.getTime();
   let batchData = [];
   let totalGenerated = 0;

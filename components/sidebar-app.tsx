@@ -13,6 +13,7 @@ import {
   UserCircle2,
   FileText,
   PanelsTopLeft,
+  MessageCircle,  // 添加这一行
 } from "lucide-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -41,8 +42,7 @@ function NavButton({ href, icon: Icon, label }: NavButtonProps) {
         className={cn(
           "w-full justify-start gap-2",
           isActive && "bg-accent text-accent-foreground"
-        )}
-      >
+        )}>
         <Icon className="h-4 w-4" />
         {label}
       </Button>
@@ -100,6 +100,11 @@ export function Sidebar({ className }: SidebarProps) {
                 href="/document"
                 icon={FileText}
                 label="文档"
+              />
+              <NavButton
+                href="/showdata/chat"
+                icon={MessageCircle}
+                label="聊天"
               />
             </div>
           </div>

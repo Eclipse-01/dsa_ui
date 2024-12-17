@@ -52,16 +52,29 @@ export class InfluxDBService {
     return true;
   }
 
+  async handlePing(): Promise<{ type: 'success' | 'error' | null, message: string }> {
+    try {
+      const queryApi = this.client.getQueryApi(this.org);
+      await queryApi.collectRows(`from(bucket:"_monitoring")
+        |> range(start: -1m)
+        |> limit(n:1)`);
+      return {
+        type: 'success',
+        message: '连接成功'
+      };
+    } catch (error: any) {
+      return {
+        type: 'error',
+        message: `连接失败: ${error?.message || '未知错误'}`
+      };
+    }
+  }
+
   async deleteData(filters: DeleteFilters): Promise<boolean> {
     try {
-      const deleteApi = this.client.getDeleteApi(this.org);
-    
-      const start = new Date();
-      start.setDate(start.getDate() - 30); // 默认删除30天内的数据
-      const stop = new Date();
+      const queryApi = this.client.getQueryApi(this.org);
       
       const predicates: string[] = [];
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value && typeof value === 'object' && '$exists' in value) {
           predicates.push(`exists(r["${key}"])`);
@@ -72,8 +85,14 @@ export class InfluxDBService {
       
       const predicate = predicates.length > 0 ? predicates.join(' and ') : '_measurement exists';
       
-      await deleteApi.delete(start, stop, predicate, this.bucket);
+      // 使用 Flux 查询来删除数据
+      const query = `
+        from(bucket: "${this.bucket}")
+          |> range(start: -30d)
+          |> filter(fn: (r) => ${predicate})
+          |> drop()`;
       
+      await queryApi.collectRows(query);
       return true;
     } catch (error) {
       console.error('Error deleting data:', error);

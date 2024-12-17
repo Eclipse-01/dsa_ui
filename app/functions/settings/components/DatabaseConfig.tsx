@@ -77,12 +77,31 @@ export function DatabaseConfig() {
     const influxDB = new InfluxDBService(
       dbConfig.url,
       dbConfig.token,
-      dbConfig.org,
-      dbConfig.bucket
+      dbConfig.org || 'default',
+      dbConfig.bucket || '_monitoring'
     );
 
     const result = await influxDB.handlePing();
-    setSaveStatus(result as { type: 'success' | 'error' | null, message: string });
+    setSaveStatus(result);
+  };
+
+  const handleTestConnection = async () => {
+    if (!dbConfig.url || !dbConfig.token) {
+      setSaveStatus({
+        type: 'error',
+        message: '请填写完整的连接信息'
+      });
+      return;
+    }
+
+    const influxDB = new InfluxDBService(
+      dbConfig.url,
+      dbConfig.token,
+      dbConfig.org || 'default',
+      dbConfig.bucket || '_monitoring'
+    );
+    const result = await influxDB.handlePing();
+    setSaveStatus(result);
   };
 
   return (

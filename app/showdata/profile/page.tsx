@@ -4,27 +4,28 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ModeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar-app"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
+import { User } from "lucide-react"
 
 export default function ProfilePage() {
   return (
     <div className="min-h-screen">
       <Sidebar className="hidden lg:block" />
-      <div className={cn(
-        "min-h-screen bg-background",
-        "lg:pl-[240px]"
-      )}>
-        {/* 添加移动端标题 */}
-        <div className="flex items-center p-4 lg:hidden">
-          <h1 className="ml-2 text-xl font-bold">DSA智能监测系统</h1>
-        </div>
-        <div className="p-4 sm:p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-              <h1 className="text-2xl sm:text-3xl font-bold">个人资料</h1>
-              <ModeToggle />
+      <div className="min-h-screen bg-background lg:pl-[240px]">
+        <div className="p-6">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="flex justify-between items-center bg-card p-4 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">个人资料</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <ModeToggle />
+              </div>
             </div>
 
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-6">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center space-y-4">

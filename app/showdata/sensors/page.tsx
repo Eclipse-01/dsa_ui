@@ -107,11 +107,20 @@ export default function SensorsPage() {
     isNetwork: false 
   })
   const [showToast, setShowToast] = useState(false)
+  const [toastType, setToastType] = useState<'error' | 'warning'>('error')
+  const [toastTitle, setToastTitle] = useState('')
 
   // 检查端口是否已存在
   const isPortExist = (port: string) => {
     return sensors.some(sensor => 
       !sensor.isNetwork && sensor.port.toLowerCase() === port.toLowerCase()
+    )
+  }
+
+  // 添加检查是否存在重复传感器的函数
+  const isDuplicateSensor = (type: string, bed: string) => {
+    return sensors.some(sensor => 
+      sensor.type === type && sensor.bed === bed
     )
   }
 
@@ -138,39 +147,94 @@ export default function SensorsPage() {
     // 这里可以添加实际的刷新逻辑
   }
 
-  // 验证表单是否填写完整且有效
+  // 更新表单验证逻辑
   const isFormValid = () => {
     if (!newSensor.type || !newSensor.bed) return false
     if (!newSensor.isNetwork && !newSensor.port) return false
+    
+    // 检查端口冲突
     if (!newSensor.isNetwork && isPortExist(newSensor.port)) {
-      if (!portError) {
-        setPortError(`端口 ${newSensor.port} 已被使用`)
-      }
       return false
     }
-    if (portError) {
-      setPortError(null)
+
+    // 检查重复传感器
+    if (isDuplicateSensor(newSensor.type, newSensor.bed)) {
+      return false
     }
+
     return true
   }
 
-  // 处理类型选择，自动填充型号
-  const handleTypeChange = (type: string) => {
-    if (newSensor.type !== type) {
-      setNewSensor({
-        ...newSensor,
-        type,
-        model: sensorModels[type as keyof typeof sensorModels],
-        sensorId: generateSensorId(type)
-      })
+  // 显示提示的辅助函数
+  const showWarningToast = (message: string, title: string = '警告') => {
+    setToastType('warning')
+    setToastTitle(title)
+    setPortError(message)
+    setShowToast(true)
+  }
+
+  // 修改床位选择的处理函数
+  const handleBedChange = (bed: string) => {
+    const updatedSensor = { ...newSensor, bed }
+    
+    // 如果已经选择了类型，立即检查是否重复
+    if (updatedSensor.type && isDuplicateSensor(updatedSensor.type, bed)) {
+      showWarningToast(`${updatedSensor.bed}已存在${updatedSensor.type}传感器`, '重复传感器')
     }
+    
+    setNewSensor(updatedSensor)
+  }
+
+  // 修改类型选择的处理函数
+  const handleTypeChange = (type: string) => {
+    const updatedSensor = {
+      ...newSensor,
+      type,
+      model: sensorModels[type as keyof typeof sensorModels],
+      sensorId: generateSensorId(type)
+    }
+    
+    // 如果已经选择了床位，立即检查是否重复
+    if (updatedSensor.bed && isDuplicateSensor(type, updatedSensor.bed)) {
+      showWarningToast(`${updatedSensor.bed}已存在${type}传感器`, '重复传感器')
+    } else {
+      setPortError(null)
+    }
+    
+    setNewSensor(updatedSensor)
   }
 
   const handleAddSensor = () => {
-    if (!isFormValid()) {
-      if (portError) {
-        setShowToast(true)
-      }
+    // 在这里进行错误检查和设置
+    if (!newSensor.type || !newSensor.bed) {
+      setPortError("请填写完整信息")
+      setToastType('error')
+      setToastTitle('表单错误')
+      setShowToast(true)
+      return
+    }
+
+    if (!newSensor.isNetwork && !newSensor.port) {
+      setPortError("请填写端口号")
+      setToastType('error')
+      setToastTitle('表单错误')
+      setShowToast(true)
+      return
+    }
+
+    if (!newSensor.isNetwork && isPortExist(newSensor.port)) {
+      setPortError(`端口 ${newSensor.port} 已被使用`)
+      setToastType('warning')
+      setToastTitle('端口冲突')
+      setShowToast(true)
+      return
+    }
+
+    if (isDuplicateSensor(newSensor.type, newSensor.bed)) {
+      setPortError(`${newSensor.bed}已存在${newSensor.type}传感器`)
+      setToastType('warning')
+      setToastTitle('重复传感器')
+      setShowToast(true)
       return
     }
     
@@ -184,6 +248,7 @@ export default function SensorsPage() {
     const updatedSensors = [...sensors, sensorToAdd]
     saveSensors(updatedSensors)
     setNewSensor({ sensorId: "", type: "", model: "", port: "", bed: "", isNetwork: false })
+    setPortError(null)
     setIsOpen(false)
   }
 
@@ -201,10 +266,13 @@ export default function SensorsPage() {
     saveSensors(updatedSensors)
   }
 
-  // 初始化1号床传感器
+  // 更新初始化1号床传感器函数
   const initializeBed1Sensors = () => {
+    // 确保清除现有的1号床传感器
+    const otherBedSensors = sensors.filter(sensor => sensor.bed !== "1号床")
+    
     const bed1Sensors = typeOptions.map((type, index) => ({
-      id: index + 1,
+      id: Date.now() + index, // 使用时间戳+索引确保ID唯一性
       sensorId: `${type.slice(0, 1)}${Date.now().toString().slice(-6)}`,
       type,
       model: sensorModels[type as keyof typeof sensorModels],
@@ -215,7 +283,7 @@ export default function SensorsPage() {
       isNetwork: false
     }))
     
-    saveSensors(bed1Sensors)
+    saveSensors([...otherBedSensors, ...bed1Sensors])
   }
 
   return (
@@ -225,12 +293,16 @@ export default function SensorsPage() {
         <div className="min-h-screen bg-background lg:pl-[240px]">
           <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Podcast className="h-8 w-8" />
-                  <h1 className="text-3xl font-bold">传感器管理</h1>
+              <div className="flex justify-between items-center bg-card p-4 rounded-lg shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Podcast className="h-6 w-6 text-primary" />
+                  </div>
+                  <h1 className="text-2xl font-semibold tracking-tight">传感器管理</h1>
                 </div>
-                <ModeToggle />
+                <div className="flex items-center gap-2">
+                  <ModeToggle />
+                </div>
               </div>
 
               <Card className="p-6">
@@ -311,9 +383,7 @@ export default function SensorsPage() {
                             <Label htmlFor="bed">床位号</Label>
                             <Select
                               value={newSensor.bed}
-                              onValueChange={(value) => 
-                                setNewSensor({...newSensor, bed: value})
-                              }
+                              onValueChange={handleBedChange}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="选择床位" />
@@ -338,7 +408,6 @@ export default function SensorsPage() {
                               }}
                               placeholder="如: COM3"
                             />
-                            {portError && <p className="text-sm text-red-500">{portError}</p>}
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -440,11 +509,25 @@ export default function SensorsPage() {
             </div>
           </div>
         </div>
-        <ToastViewport />
+        {/* 修改 ToastViewport 的位置和样式 */}
+        <ToastViewport 
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 flex flex-col p-4 gap-2 w-full max-w-[420px] z-[100]" 
+        />
         {showToast && (
-          <Toast onOpenChange={setShowToast}>
-            <ToastTitle>端口错误</ToastTitle>
-            <ToastDescription>{portError}</ToastDescription>
+          <Toast 
+            onOpenChange={setShowToast}
+            variant={toastType === 'error' ? 'destructive' : 'default'}
+            className="bg-white dark:bg-gray-800 border shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+          >
+            <div className="flex items-center gap-2">
+              {toastType === 'warning' && (
+                <div className="rounded-full bg-yellow-500 w-2 h-2" />
+              )}
+              <ToastTitle className="text-base font-medium">{toastTitle}</ToastTitle>
+            </div>
+            <ToastDescription className="text-sm mt-1">
+              {portError}
+            </ToastDescription>
           </Toast>
         )}
       </div>

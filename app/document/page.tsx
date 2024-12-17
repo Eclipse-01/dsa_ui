@@ -1,8 +1,9 @@
 'use client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Sidebar } from "@/components/sidebar-app"
+import { FileText } from "lucide-react"
 import DeploymentArticle from './article/deployment'
 import InfluxDBArticle from './article/influxdb'
 import DatabaseArticle from './article/database'
@@ -14,10 +15,17 @@ export default function DocumentPage() {
       <Sidebar className="hidden lg:block" />
       <div className="lg:pl-[240px] min-h-screen bg-background">
         <div className="p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">项目文档</h1>
-              <ModeToggle />
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="flex justify-between items-center bg-card p-4 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">项目文档</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <ModeToggle />
+              </div>
             </div>
 
             <Card>

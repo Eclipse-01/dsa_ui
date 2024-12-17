@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { ModeToggle } from "@/components/theme-toggle"
 import { Sidebar } from "@/components/sidebar-app"
+import { Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { motion } from "framer-motion"
@@ -432,17 +433,21 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen">
       <Sidebar className="hidden lg:block" />
-      <div className={cn("min-h-screen bg-background", "lg:pl-[240px]")}>
+      <div className="min-h-screen bg-background lg:pl-[240px]">
         <VitalAlerts alerts={alerts} />
-
         <div className="p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold">生命体征监测</h1>
-                <BedSelector selectedBed={selectedBed} onBedChange={setSelectedBed} />
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="flex justify-between items-center bg-card p-4 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Activity className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">生命体征监测</h1>
               </div>
-              <ModeToggle />
+              <div className="flex items-center gap-4">
+                <BedSelector selectedBed={selectedBed} onBedChange={setSelectedBed} />
+                <ModeToggle />
+              </div>
             </div>
 
             {/* 使用选中床位的数据显示生命体征，并添加动画 */}

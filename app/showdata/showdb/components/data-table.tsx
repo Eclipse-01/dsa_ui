@@ -198,7 +198,7 @@ export function DataTable({
   return (
     <div className="space-y-4">
       {isLoading && <PlzWait message="正在加载数据，请稍候..." />}
-      <div className="rounded-md border shadow-sm p-4 mb-4">
+      <div className="rounded-md border bg-card text-card-foreground shadow-sm p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Button
@@ -243,7 +243,6 @@ export function DataTable({
               variant="default"
               size="sm"
               onClick={() => setShowAddDialog(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
             >
               添加数据
             </Button>
@@ -259,7 +258,7 @@ export function DataTable({
           />
         )}
 
-        <div className="rounded-md border data-table-container">
+        <div className="rounded-md border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -275,15 +274,15 @@ export function DataTable({
             <TableBody>
               {displayData.length > 0 ? (
                 displayData.map((item, index) => (
-                  <TableRow key={item._time + index} className="h-9">  {/* 增加行高 */}
-                    <TableCell className="p-0 pl-2 py-1">  {/* 调整垂直内边距 */}
+                  <TableRow key={item._time + index} className="h-9">
+                    <TableCell className="p-0 pl-2 py-1">
                       <Checkbox
                         checked={isItemSelected(item) || isSelectingAll}
                         onCheckedChange={() => toggleSelect(item)}
                         className="h-4 w-4"
                       />
                     </TableCell>
-                    <TableCell className="compact-cell py-1.5">  {/* 增加垂直内边距 */}
+                    <TableCell className="compact-cell py-1.5">
                       {format(new Date(item._time), "yyyy-MM-dd HH:mm:ss")}
                     </TableCell>
                     <TableCell className="compact-cell py-1.5">
@@ -299,15 +298,15 @@ export function DataTable({
                     <TableCell className="compact-cell py-1.5">{item.unit}</TableCell>
                     <TableCell className="compact-cell py-1.5">{item.bed}</TableCell>
                     <TableCell className="compact-cell py-1.5">{item.type}</TableCell>
-                    <TableCell className="p-0 py-1">  {/* 调整垂直内边距 */}
+                    <TableCell className="p-0 py-1">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-7 w-7 p-0">  {/* 稍微增加按钮大小 */}
+                          <Button variant="outline" size="sm" className="h-7 w-7 p-0">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setEditingData(item)}>
+                          <DropdownMenuItem>
                             编辑
                           </DropdownMenuItem>
                           <DropdownMenuItem 

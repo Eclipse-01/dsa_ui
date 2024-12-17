@@ -100,7 +100,7 @@ function getStoredConfig() {
 
 // 改进重试函数
 const retryFetch = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
-  let lastError: Error;  // 明确指定错误类型
+  let lastError: Error = new Error(''); // 将类型改为 Error
   
   for (let i = 0; i < retries; i++) {
     try {
