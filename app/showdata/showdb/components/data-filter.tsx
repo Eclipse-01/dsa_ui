@@ -39,7 +39,6 @@ interface DataFilterProps {
     dateRange: DateRange;
     vitalSign: string;
     bedNumber: string;
-    findExtremes?: boolean;
   }) => void
 }
 
@@ -51,14 +50,13 @@ export function DataFilter({ onQuery }: DataFilterProps) {
   // 检查是否所有必填项都已选择
   const isFormComplete = date?.from && date?.to && vitalSign && bedNumber
 
-  const handleQuery = (findExtremes: boolean = false) => {
+  const handleQuery = () => {
     if (!isFormComplete || !date) return
     
     onQuery({
       dateRange: date,
       vitalSign,
       bedNumber,
-      findExtremes
     })
   }
 
@@ -113,21 +111,12 @@ export function DataFilter({ onQuery }: DataFilterProps) {
             </Select>
             <Button 
               className="w-full md:w-auto" 
-              onClick={() => handleQuery(false)}
+              onClick={handleQuery}
               disabled={!isFormComplete}
               title={!isFormComplete ? "请完成所有选项再查询" : "点击查询"}
             >
               <Search className="mr-2 h-4 w-4" />
               查询
-            </Button>
-            <Button 
-              className="w-full md:w-auto" 
-              onClick={() => handleQuery(true)}
-              disabled={!isFormComplete}
-              title={!isFormComplete ? "请完成所有选项再查询" : "点击查找最值"}
-            >
-              <Search className="mr-2 h-4 w-4" />
-              查找最值
             </Button>
           </div>
           {!isFormComplete && (

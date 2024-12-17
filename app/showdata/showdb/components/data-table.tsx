@@ -157,11 +157,17 @@ export function DataTable({
 
   const handleJump = (e: React.FormEvent) => {
     e.preventDefault()
-    const pageNum = parseInt(jumpPage)
-    // 添加页码范围验证
+    // 将输入值转换为数字，使用parseInt而不是Number
+    const pageNum = parseInt(jumpPage, 10)
+    
     if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      // 直接调用onPageChange，不需要任何额外的计算
       onPageChange(pageNum)
       setJumpPage("")
+      // 可以添加一个console.log来调试
+      console.log('跳转到页码:', pageNum)
+    } else {
+      alert(`请输入1到${totalPages}之间的有效页码`)
     }
   }
 
@@ -194,6 +200,14 @@ export function DataTable({
       console.error('删除失败:', error)
     }
   }
+
+  // 简化分页处理函数
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      console.log('Changing to page:', newPage); // 用于调试
+      onPageChange(newPage);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -338,8 +352,8 @@ export function DataTable({
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
               >
                 上一页
               </Button>
@@ -350,7 +364,16 @@ export function DataTable({
                   min={1}
                   max={totalPages}
                   value={jumpPage}
-                  onChange={(e) => setJumpPage(e.target.value)}
+                  onChange={(e) => {
+                    // 限制输入为正整数
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    setJumpPage(value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleJump(e)
+                    }
+                  }}
                   className="w-20 h-8 text-center"
                   placeholder={currentPage.toString()}
                 />
@@ -361,8 +384,8 @@ export function DataTable({
                   variant="outline"
                   size="sm"
                   onClick={handleJump}
-                  disabled={!jumpPage || isNaN(parseInt(jumpPage)) || 
-                    parseInt(jumpPage) < 1 || parseInt(jumpPage) > totalPages}
+                  disabled={!jumpPage || isNaN(parseInt(jumpPage, 10)) || 
+                    parseInt(jumpPage, 10) < 1 || parseInt(jumpPage, 10) > totalPages}
                 >
                   跳转
                 </Button>
@@ -371,11 +394,7 @@ export function DataTable({
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  if (currentPage < totalPages) {
-                    onPageChange(currentPage + 1)
-                  }
-                }}
+                onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
               >
                 下一页
