@@ -113,7 +113,7 @@ const getMinMaxValues = (data: VitalData[]): { min: number; max: number } => {
 // 添加一个获取动画设置的工具函数
 const getChartAnimationSetting = (): boolean => {
   try {
-    const settings = localStorage.getItem('settings')
+    const settings = localStorage.getItem('app_settings')
     if (settings) {
       const parsed = JSON.parse(settings)
       return !!parsed.chartAnimation

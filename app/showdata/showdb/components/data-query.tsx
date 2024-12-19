@@ -20,6 +20,7 @@ interface DataQueryProps {
   queryParams: QueryParams | null;  // 使用完整的 QueryParams 接口
   shouldQuery: boolean;
   onQueryComplete: () => void;
+  onData?: (data: any[]) => void // 添加数据回调属性
 }
 
 interface QueryConfig {
@@ -150,7 +151,7 @@ const fetchAllData = async (config: QueryConfig, queryParams: QueryParams): Prom
   return results.map(convertToVitalData);
 };
 
-export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQueryProps) {
+export function DataQuery({ queryParams, shouldQuery, onQueryComplete, onData }: DataQueryProps) {
   const [data, setData] = useState<VitalData[]>([])
   const [extremeData, setExtremeData] = useState<VitalData[]>([])
   const [loading, setLoading] = useState(false)
@@ -235,6 +236,10 @@ export function DataQuery({ queryParams, shouldQuery, onQueryComplete }: DataQue
         setData(pageData);
       }
       
+      if (onData) {
+        onData(pageData) // 将数据传递给父组件
+      }
+
       // 更新是否有下一页
       setHasMore(validCurrentPage < maxPage)
       

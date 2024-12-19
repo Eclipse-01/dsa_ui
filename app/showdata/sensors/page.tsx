@@ -48,7 +48,7 @@ import {
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport } from "@/components/ui/toast"
 
 export default function SensorsPage() {
-  const bedOptions = ["1号床", "2号床", "3号床", "4号床"]
+  const bedOptions = ["1号床", "2号床", "3号床", "4号床","5号床"]
   const typeOptions = [
     "心率", 
     "血压", 

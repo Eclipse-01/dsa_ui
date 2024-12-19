@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sha256 } from "@/utils/crypto";
 
-// 预设的管理员密码哈希值（JiangNan的SHA-256哈希值）
+// 预设的管理员密码哈希值（******的SHA-256哈希值）
 const ADMIN_PASSWORD_HASH = "c8f204e21aaf3cda702a0205266cca4e299fef365cec0e10f24a5ce0801f85df";
 const ADMIN_USERNAME = "Administrator";
 
