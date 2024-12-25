@@ -13,7 +13,7 @@ import {
   UserCircle2,
   FileText,
   PanelsTopLeft,
-  MessageCircle,  // 添加这一行
+  MessageCircle,
 } from "lucide-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {

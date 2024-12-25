@@ -78,26 +78,45 @@ export default function ProfilePage() {
                         张善新 - 江南大学物联网工程学院副教授，主要研究方向为模式识别与人工智能、云原生数字技术。
                       </p>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <h3 className="text-md font-medium">开发团队</h3>
                       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                         <div>
                           <p className="text-sm font-medium">方乐阳（组长）</p>
-                          <p className="text-sm text-muted-foreground">
-                            负责项目整体架构设计和前端开发，专注于用户界面和交互体验优化。
+                          <p className="text-sm text-muted-foreground flex flex-col space-y-1">
+                            <span>主导项目的进行</span>
+                            <span>主导前端设计与开发</span>
+                            <span>主导后端架构与开发</span>
+                            <span>测试并调试软件</span>
+                            <span>界面风格控制和UI设计</span>
+                            <span>开发环境搭建和验证算法设计</span>
+                            <span>对整个项目进行调控与操作</span>
+                            <span>制作PPT</span>
+                            <span>撰写报告书</span>
+                            <span>查找资料</span>
                           </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">王宇斌</p>
-                          <p className="text-sm text-muted-foreground">
-                            负责后端开发和数据库设计，专注于系统性能优化和数据安全。
+                          <p className="text-sm text-muted-foreground flex flex-col space-y-1">
+                            <span>参与项目方向确定</span>
+                            <span>参与前端设计与开发</span>
+                            <span>参与后端架构与开发</span>
+                            <span>验证项目功能</span>
+                            <span>查找资料</span>
                           </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">白峻臣</p>
-                          <p className="text-sm text-muted-foreground">
-                            负责算法研究和模型优化，专注于医疗数据分析和预测模型开发。
+                          <p className="text-sm text-muted-foreground flex flex-col space-y-1">
+                            <span>参与前端设计与开发</span>
+                            <span>参与后端架构与开发</span>
+                            <span>制作PPT</span>
+                            <span>撰写报告书</span>
+                            <span>参与技术实现的确定</span>
+                            <span>参与调试</span>
+                            <span>查找资料</span>
                           </p>
                         </div>
                       </div>
@@ -106,7 +125,10 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <h3 className="text-md font-medium">团队介绍</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        我们是一个有爱的团队，在本项目的开发过程中，我们相互协作、共同进步，度过了许多难忘的时光。
+                        我们是一支来自江南大学物联网工程学院的学生开发团队。在本项目中，我们充分发挥各自专长，
+                        将理论知识与实践相结合，通过敏捷开发的方式完成了这个基于React和InfluxDB的医疗数据监测系统。
+                        团队成员间密切配合，在项目开发过程中注重代码质量和用户体验，善于技术创新和解决问题。
+                        通过这个项目，我们不仅提升了技术能力，也加深了对软件工程开发流程的理解。
                       </p>
                     </div>
                   </div>

@@ -122,7 +122,7 @@ export function GenerateDataDialog({
     for (let i = 0; i < targetPoints; i++) {
       const pointIndex = batchIndex * (BATCH_SIZE / (bedNumbers.length * vitalSigns.length)) + i
       const currentTimestamp = startTime + (pointIndex * intervalMs)
-      const timestampNs = BigInt(currentTimestamp) * BigInt(1000000)
+      const timestampNs = BigInt(Math.floor(currentTimestamp)) * BigInt(1000000) // 转换为整数后再转换为 BigInt
   
       for (const bedNumber of bedNumbers) {
         for (const vitalSign of vitalSigns) {

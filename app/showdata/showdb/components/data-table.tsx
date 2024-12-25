@@ -320,7 +320,7 @@ export function DataTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditingData(item)}>
                             编辑
                           </DropdownMenuItem>
                           <DropdownMenuItem 

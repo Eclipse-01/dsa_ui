@@ -122,24 +122,6 @@ export function AppSettings() {
           />
         </div>
 
-        {/* <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="table-scroll">数据表格滚动模式</Label>
-            <div className="text-sm text-muted-foreground">
-              启用后将在单页显示所有数据,通过滚动查看
-            </div>
-          </div>
-          <Switch
-            id="table-scroll"
-            checked={tableScrollMode}
-            onCheckedChange={(checked) => {
-              setTableScrollMode(checked)
-              saveSettings({ tableScrollMode: checked })
-            }}
-          />
-        </div> */}
-        {/* 禁用了数据表格滚动模式，以减少Bug */}
-
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label>字体设置</Label>
